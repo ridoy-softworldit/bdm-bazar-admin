@@ -540,6 +540,7 @@ import {
   useGetAllOrdersQuery,
   useUpdateOrderStatusMutation,
 } from "@/redux/featured/order/orderApi";
+import { useGetSingleProductQuery } from "@/redux/featured/products/productsApi";
 
 // Model অনুযায়ী Status
 const ORDER_STATUSES = [
@@ -589,6 +590,12 @@ const getStatusColor = (status: string) => {
     default:
       return "bg-gray-100 text-gray-800";
   }
+};
+
+// Component to fetch and display product name
+const ProductName = ({ productId }: { productId: string }) => {
+  const { data: product } = useGetSingleProductQuery(productId);
+  return <span>{product?.description?.name || "Loading..."}</span>;
 };
 
 const OrderPage = () => {
@@ -885,7 +892,7 @@ const OrderPage = () => {
       {/* Expanded Order Modal */}
       {expandedOrder && (
         <div className="bg-[#00000085] fixed top-0 left-0 w-[100vw] h-[100vh] flex items-center justify-center z-50">
-          <div className="relative bg-white p-6 rounded-xl shadow-2xl w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white p-6 rounded-xl shadow-2xl w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setExpandedOrder(null)}
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
@@ -972,7 +979,11 @@ const OrderPage = () => {
                             (item: any, idx: number) => (
                               <TableRow key={idx}>
                                 <TableCell>
-                                  {item.productInfo?.description?.name || "N/A"}
+                                  {typeof item.productInfo === 'string' ? (
+                                    <ProductName productId={item.productInfo} />
+                                  ) : (
+                                    item.productInfo?.description?.name || "N/A"
+                                  )}
                                 </TableCell>
                                 <TableCell>
                                   {item.trackingNumber || "—"}

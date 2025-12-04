@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import toast from "react-hot-toast";
 import { Loader2, Upload, Save } from "lucide-react";
 
+
 import { FaTrash } from "react-icons/fa";
 import {
   useGetSettingsQuery,
@@ -526,6 +527,8 @@ export default function GeneralSettingsPage() {
             </div>
           </div>
         </TabsContent>
+
+
       </Tabs>
 
       <Button onClick={handleSubmit} disabled={isUpdating} className="mt-6">

@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Upload, Loader2, Save } from "lucide-react";
 import toast from "react-hot-toast";
-import { useGetSettingsQuery, useUpdateSettingsMutation } from "@/redux/featured/settings/settingsApi";
+import { useGetSettingsQuery, useUpdateSettingsMutation, IDeliveryCharge } from "@/redux/featured/settings/settingsApi";
+import DeliveryChargeSettings from "@/components/modules/Dashboard/delivery-settings/DeliveryChargeSettings";
 
 export default function SettingsTab() {
   const { data, isLoading } = useGetSettingsQuery();
@@ -20,14 +21,14 @@ export default function SettingsTab() {
     rocket: { rocketLogo: "", rocketNumber: "" },
     upay: { upayLogo: "", upayNumber: "" },
   });
-  const [deliveryCharge, setDeliveryCharge] = useState<number>(0);
+
   const [files, setFiles] = useState<Record<string, File | null>>({});
 
   // Load settings data
   useEffect(() => {
     if (data) {
       if (data.mobileMfs) setMobileMfs(data.mobileMfs);
-      if (data.deliveryCharge !== undefined) setDeliveryCharge(data.deliveryCharge);
+
     }
   }, [data]);
 
@@ -49,47 +50,37 @@ export default function SettingsTab() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent, type: "mobileMfs" | "deliveryCharge") => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const formData = new FormData();
 
-      if (type === "mobileMfs") {
-        // ✅ Add all phone numbers to mobileMfs nested structure
-        Object.entries(mobileMfs).forEach(([key, value]) => {
-          const numKey = `${key}Number`;
-          const item = value as Record<string, string>;
-          
-          // Append phone number in nested format
-          formData.append(`mobileMfs[${key}][${numKey}]`, item[numKey] || "");
-          
-          // Append existing logo URL if no new file is uploaded
-          const logoKey = `${key}Logo`;
-          if (!files[key as keyof typeof files] && item[logoKey]) {
-            formData.append(`mobileMfs[${key}][${logoKey}]`, item[logoKey]);
-          }
-        });
+      // ✅ Add all phone numbers to mobileMfs nested structure
+      Object.entries(mobileMfs).forEach(([key, value]) => {
+        const numKey = `${key}Number`;
+        const item = value as Record<string, string>;
+        
+        // Append phone number in nested format
+        formData.append(`mobileMfs[${key}][${numKey}]`, item[numKey] || "");
+        
+        // Append existing logo URL if no new file is uploaded
+        const logoKey = `${key}Logo`;
+        if (!files[key as keyof typeof files] && item[logoKey]) {
+          formData.append(`mobileMfs[${key}][${logoKey}]`, item[logoKey]);
+        }
+      });
 
-        // ✅ Add logo files separately (backend expects them as top-level fields)
-        Object.entries(files).forEach(([key, file]) => {
-          if (file) {
-            formData.append(`${key}Logo`, file);
-          }
-        });
-      } else if (type === "deliveryCharge") {
-        formData.append("deliveryCharge", deliveryCharge.toString());
-      }
-
-    
+      // ✅ Add logo files separately (backend expects them as top-level fields)
+      Object.entries(files).forEach(([key, file]) => {
+        if (file) {
+          formData.append(`${key}Logo`, file);
+        }
+      });
 
       const res = await updateSettings(formData).unwrap();
 
       if (res.success) {
-        toast.success(
-          type === "mobileMfs"
-            ? "Mobile MFS updated successfully!"
-            : "Delivery charge updated successfully!"
-        );
+        toast.success("Mobile MFS updated successfully!");
         // Clear files state after successful upload
         setFiles({});
       }
@@ -132,7 +123,7 @@ export default function SettingsTab() {
 
       {/* Tab Content */}
       {activeTab === "mobileMfs" && (
-        <form onSubmit={(e) => handleSubmit(e, "mobileMfs")} className="grid md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6">
           {Object.entries(mobileMfs).map(([key, value]: any) => (
             <div key={key} className="border rounded-md p-4 flex flex-col gap-3 bg-gray-50">
               <h3 className="capitalize font-medium">{key}</h3>
@@ -182,19 +173,7 @@ export default function SettingsTab() {
       )}
 
       {activeTab === "deliveryCharge" && (
-        <form onSubmit={(e) => handleSubmit(e, "deliveryCharge")} className="flex flex-col gap-4 max-w-sm">
-          <Input
-            type="number"
-            placeholder="Enter delivery charge"
-            value={deliveryCharge}
-            onChange={(e) => setDeliveryCharge(Number(e.target.value))}
-          />
-
-          <Button type="submit" disabled={updating}>
-            {updating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save Delivery Charge
-          </Button>
-        </form>
+        <DeliveryChargeSettings />
       )}
     </div>
   );

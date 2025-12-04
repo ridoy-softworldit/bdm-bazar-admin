@@ -30,6 +30,21 @@ export interface IContactAndSocial {
   youtubeUrl?: string[];
 }
 
+export interface IDeliveryCharge {
+  insideDhaka: {
+    steadfast: number;
+    pathao: number;
+    redx: number;
+    sundarban: number;
+  };
+  outsideDhaka: {
+    steadfast: number;
+    pathao: number;
+    redx: number;
+    sundarban: number;
+  };
+}
+
 export interface ISettings {
   _id?: string;
   logo?: string;
@@ -42,9 +57,9 @@ export interface ISettings {
   privacyPolicy: IPrivacyPolicy;
   returnPolicy: IReturnPolicy;
   contactAndSocial: IContactAndSocial;
-  mobileMfs?: IMobileMfsItem; // ✅ Added here
+  mobileMfs?: IMobileMfsItem;
   sliderImages?: string[];
-  deliveryCharge?: number;
+  deliveryCharge?: number | IDeliveryCharge;
   createdAt?: string;
   updatedAt?: string;
   __v?: number;
