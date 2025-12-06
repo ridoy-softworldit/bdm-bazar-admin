@@ -517,7 +517,7 @@ import {
   CircleChevronUp,
   CircleChevronDown,
   Search,
-  Calendar,
+  Printer,
 } from "lucide-react";
 
 import {
@@ -593,9 +593,18 @@ const getStatusColor = (status: string) => {
 };
 
 // Component to fetch and display product name
-const ProductName = ({ productId }: { productId: string }) => {
+const ProductName = ({ productId, onNameLoaded }: { productId: string; onNameLoaded?: (id: string, name: string) => void }) => {
   const { data: product } = useGetSingleProductQuery(productId);
-  return <span>{product?.description?.name || "Loading..."}</span>;
+  const productName = product?.description?.name || "Loading...";
+  
+  // Store the product name when loaded
+  useEffect(() => {
+    if (product?.description?.name && onNameLoaded) {
+      onNameLoaded(productId, product.description.name);
+    }
+  }, [product, productId, onNameLoaded]);
+  
+  return <span>{productName}</span>;
 };
 
 const OrderPage = () => {
@@ -891,14 +900,22 @@ const OrderPage = () => {
 
       {/* Expanded Order Modal */}
       {expandedOrder && (
-        <div className="bg-[#00000085] fixed top-0 left-0 w-[100vw] h-[100vh] flex items-center justify-center z-50">
-          <div className="relative bg-white p-6 rounded-xl shadow-2xl w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="bg-[#00000085] fixed top-0 left-0 w-[100vw] h-[100vh] flex items-center justify-center z-50 print:bg-white print:static print:w-full print:h-auto">
+          <div className="relative bg-white p-6 rounded-xl shadow-2xl w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto print:shadow-none print:rounded-none print:p-8 print:w-full print:max-w-none print:max-h-none">
             <button
               onClick={() => setExpandedOrder(null)}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 print:hidden"
             >
               X
             </button>
+            
+            {/* Print Header */}
+            <div className="hidden print:block mb-8">
+              <div className="text-center border-b-2 border-gray-300 pb-4">
+                <h1 className="text-3xl font-bold text-gray-800">BDM BAZAR</h1>
+                <p className="text-gray-600 mt-1">Order Invoice</p>
+              </div>
+            </div>
 
             {(() => {
               const rawOrder = orderData.find(
@@ -907,20 +924,111 @@ const OrderPage = () => {
               if (!rawOrder) return <p>Order not found.</p>;
 
               return (
-                <div className="space-y-6">
-                  <div className="flex flex-col sm:flex-row justify-between items-center">
+                <div>
+                  <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
                     <h2 className="text-xl font-semibold">
                       Order <span className="font-bold">{rawOrder._id}</span>
                     </h2>
-                    <p className="text-sm text-gray-500">
-                      {new Date(rawOrder.createdAt).toLocaleString()}
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          // Get product names from the modal table
+                          const productCells = document.querySelectorAll('tbody tr td:first-child span');
+                          const productNames = Array.from(productCells).map(cell => cell.textContent || 'Product');
+                          
+                          const originalContent = document.body.innerHTML;
+                          document.body.innerHTML = `
+                            <div class="receipt-content">
+                              <div class="receipt-header">
+                                <h1>BDM BAZAR</h1>
+                                <p>Order Management Receipt</p>
+                                <p>Order ID: ${rawOrder._id}</p>
+                                <p>Date: ${new Date(rawOrder.createdAt).toLocaleString()}</p>
+                              </div>
+                              
+                              <div class="receipt-info">
+                                <div>
+                                  <h3>Customer Information</h3>
+                                  <p><strong>Name:</strong> ${rawOrder.customerInfo.firstName} ${rawOrder.customerInfo.lastName}</p>
+                                  <p><strong>Email:</strong> ${rawOrder.customerInfo.email}</p>
+                                  <p><strong>Phone:</strong> ${rawOrder.customerInfo.phone}</p>
+                                  <p><strong>Address:</strong> ${rawOrder.customerInfo.address}, ${rawOrder.customerInfo.city}</p>
+                                </div>
+                                <div>
+                                  <h3>Order Details</h3>
+                                  <p><strong>Status:</strong> ${rawOrder.orderInfo?.[0]?.status || 'pending'}</p>
+                                  <p><strong>Payment:</strong> ${typeof rawOrder.paymentInfo === 'string' ? rawOrder.paymentInfo : 'Card'}</p>
+                                  <p><strong>Tracking:</strong> ${rawOrder.orderInfo?.[0]?.trackingNumber || 'Not assigned'}</p>
+                                </div>
+                              </div>
+                              
+                              <div class="receipt-section">
+                                <h3>Order Items</h3>
+                                <table class="receipt-table">
+                                  <thead>
+                                    <tr>
+                                      <th>Product</th>
+                                      <th>Quantity</th>
+                                      <th>Unit Price</th>
+                                      <th>Subtotal</th>
+                                      <th>Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    ${(rawOrder.orderInfo || []).map((item, index) => `
+                                      <tr>
+                                        <td>${productNames[index] || 'Product'}</td>
+                                        <td>${item.quantity}</td>
+                                        <td>৳${Math.round((item.totalAmount?.subTotal || 0) / item.quantity)}</td>
+                                        <td>৳${item.totalAmount?.subTotal || 0}</td>
+                                        <td>${item.status}</td>
+                                      </tr>
+                                    `).join('')}
+                                  </tbody>
+                                </table>
+                              </div>
+                              
+                              <div class="receipt-total">
+                                <div class="total-row">
+                                  <span>Subtotal:</span>
+                                  <span>৳${rawOrder.orderInfo?.reduce((sum, item) => sum + (item.totalAmount?.subTotal || 0), 0) || 0}</span>
+                                </div>
+                                <div class="total-row">
+                                  <span>Delivery Charge:</span>
+                                  <span>৳${rawOrder.deliveryCharge || 0}</span>
+                                </div>
+                                <div class="total-row final-total">
+                                  <span>TOTAL AMOUNT:</span>
+                                  <span>৳${rawOrder.totalAmount}</span>
+                                </div>
+                              </div>
+                              
+                              <div style="margin-top: 30px; text-align: center; font-size: 9pt;">
+                                <p>Printed: ${new Date().toLocaleString()}</p>
+                              </div>
+                            </div>
+                          `;
+                          window.print();
+                          document.body.innerHTML = originalContent;
+                          window.location.reload();
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <Printer size={16} />
+                        Print
+                      </button>
+                      <p className="text-sm text-gray-500">
+                        {new Date(rawOrder.createdAt).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
+                  
+                  <div id="order-receipt" className="receipt-content space-y-6">
 
-                  <div className="flex flex-col sm:flex-row justify-between gap-6">
-                    <div className="bg-[#F3F4F6] sm:w-2/3 p-4 rounded-lg shadow-sm">
-                      <h3 className="font-medium mb-2">Customer Information</h3>
-                      <div className="text-sm space-y-1">
+                  <div className="flex flex-col sm:flex-row justify-between gap-6 print:gap-8">
+                    <div className="bg-[#F3F4F6] sm:w-2/3 p-4 rounded-lg shadow-sm print:bg-white print:border print:border-gray-300 print:shadow-none print:w-2/3">
+                      <h3 className="font-medium mb-2 print:font-bold print:text-lg print:border-b print:border-gray-200 print:pb-2">Customer Information</h3>
+                      <div className="text-sm space-y-1 print:text-base print:space-y-2">
                         <p>
                           <span className="font-semibold">Name:</span>{" "}
                           {rawOrder.customerInfo.firstName}{" "}
@@ -944,9 +1052,9 @@ const OrderPage = () => {
                       </div>
                     </div>
 
-                    <div className="bg-[#F3F4F6] sm:w-1/3 p-4 rounded-lg shadow-sm">
-                      <h3 className="font-medium mb-2">Payment</h3>
-                      <div className="text-sm space-y-1">
+                    <div className="bg-[#F3F4F6] sm:w-1/3 p-4 rounded-lg shadow-sm print:bg-white print:border print:border-gray-300 print:shadow-none print:w-1/3">
+                      <h3 className="font-medium mb-2 print:font-bold print:text-lg print:border-b print:border-gray-200 print:pb-2">Payment</h3>
+                      <div className="text-sm space-y-1 print:text-base print:space-y-2">
                         <p>
                           <span className="font-semibold">Method:</span>{" "}
                           {typeof rawOrder.paymentInfo === "string"
@@ -961,17 +1069,15 @@ const OrderPage = () => {
                     </div>
                   </div>
 
-                  <div className="bg-[#F3F4F6] p-4 rounded-lg shadow-sm">
-                    <h3 className="font-medium mb-2">Order Items</h3>
+                  <div className="bg-[#F3F4F6] p-4 rounded-lg shadow-sm print:bg-white print:border print:border-gray-300 print:shadow-none">
+                    <h3 className="font-medium mb-2 print:font-bold print:text-lg print:border-b print:border-gray-200 print:pb-2">Order Items</h3>
                     <div className="overflow-x-auto">
-                      <Table className="min-w-[600px]">
+                      <Table className="min-w-[600px] print:min-w-full">
                         <TableHeader>
-                          <TableRow>
-                            <TableHead>Product</TableHead>
-                            <TableHead>Tracking</TableHead>
-                            <TableHead>Quantity</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Total</TableHead>
+                          <TableRow className="print:border-b-2 print:border-gray-400">
+                            <TableHead>Item</TableHead>
+                            <TableHead>Qty</TableHead>
+                            <TableHead>Price</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -982,31 +1088,37 @@ const OrderPage = () => {
                                   {typeof item.productInfo === 'string' ? (
                                     <ProductName productId={item.productInfo} />
                                   ) : (
-                                    item.productInfo?.description?.name || "N/A"
+                                    (item.productInfo as any)?.description?.name || "N/A"
                                   )}
                                 </TableCell>
-                                <TableCell>
-                                  {item.trackingNumber || "—"}
-                                </TableCell>
                                 <TableCell>{item.quantity}</TableCell>
-                                <TableCell>
-                                  <span
-                                    className={`px-2 py-1 text-xs rounded-md ${getStatusColor(
-                                      item.status
-                                    )}`}
-                                  >
-                                    {formatStatus(item.status)}
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  ৳{item.totalAmount?.total || 0}
-                                </TableCell>
+                                <TableCell>৳{item.totalAmount?.subTotal || 0}</TableCell>
                               </TableRow>
                             )
                           )}
                         </TableBody>
                       </Table>
                     </div>
+                  </div>
+
+                  <div className="bg-[#F3F4F6] p-4 rounded-lg shadow-sm print:bg-white print:border print:border-gray-300 print:shadow-none">
+                    <h3 className="font-medium mb-3 print:font-bold print:text-lg print:border-b print:border-gray-200 print:pb-2">Order Summary</h3>
+                    <div className="space-y-2 text-sm print:space-y-3 print:text-base">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 print:text-black">Subtotal:</span>
+                        <span className="font-medium print:font-semibold">৳{(rawOrder as any).orderInfo?.reduce((sum: number, item: any) => sum + (item.totalAmount?.subTotal || 0), 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 print:text-black">Delivery Charge:</span>
+                        <span className="font-medium print:font-semibold">৳{(rawOrder as any).deliveryCharge || 0}</span>
+                      </div>
+                      <div className="border-t pt-2 mt-2 flex justify-between print:border-t-2 print:border-gray-400 print:pt-3 print:mt-3">
+                        <span className="font-semibold text-base print:font-bold print:text-lg">Total Amount:</span>
+                        <span className="font-bold text-base text-violet-600 print:text-black print:text-lg">৳{(rawOrder as any).totalAmount}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
                   </div>
                 </div>
               );

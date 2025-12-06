@@ -38,6 +38,7 @@ export interface Order {
   customerInfo: CustomerInfo;
   orderInfo: OrderInfo[];
   totalAmount: number;
+  deliveryCharge?: number;
   paymentInfo: string;
   createdAt: string;
   updatedAt: string;
