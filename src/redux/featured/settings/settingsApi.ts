@@ -31,18 +31,8 @@ export interface IContactAndSocial {
 }
 
 export interface IDeliveryCharge {
-  insideDhaka: {
-    steadfast: number;
-    pathao: number;
-    redx: number;
-    sundarban: number;
-  };
-  outsideDhaka: {
-    steadfast: number;
-    pathao: number;
-    redx: number;
-    sundarban: number;
-  };
+  insideDhaka: number;
+  outsideDhaka: number;
 }
 
 export interface ISettings {

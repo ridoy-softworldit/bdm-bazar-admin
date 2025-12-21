@@ -109,16 +109,6 @@ export function TopNavbar({ isSidebarOpen, toggleSidebar }: TopNavbarProps) {
       <div className="flex items-center justify-end gap-2">
         {/* Action Buttons - Hidden on small screens */}
         <div className="hidden md:flex items-center gap-1">
-          <Link href={`/admin/create-shop`}>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-gray-700 hover:bg-gray-50 border-gray-300"
-            >
-              <IoAdd />
-              <span className="ml-2">Create Shop</span>
-            </Button>
-          </Link>
           <Link href={`https://www.bdmbazar.com`}>
             <Button
               variant="outline"
@@ -225,17 +215,7 @@ export function TopNavbar({ isSidebarOpen, toggleSidebar }: TopNavbarProps) {
               align="end"
               className="w-64 p-2 space-y-2 rounded-lg border border-gray-200 shadow-lg"
             >
-              <div className="grid grid-cols-2 gap-1 px-2">
-                <Link href={`/create-shop`}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-gray-700 hover:bg-gray-50 border-gray-300"
-                  >
-                    <IoAdd />
-                    <span className="ml-2">Create Shop</span>
-                  </Button>
-                </Link>
+              <div className="grid grid-cols-1 gap-1 px-2">
                 <Link href={`https://www.bdmbazar.com`}>
                   <Button
                     variant="outline"

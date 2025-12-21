@@ -547,7 +547,13 @@ export function AppSidebar({
                 </div> */}
               </div>
             </div>
-
+            {/* ORDER MANAGEMENT */}
+            <div className="ml-1">
+              {renderSection(
+                "ORDER MANAGEMENT",
+                navigationItems.orderManagement
+              )}
+            </div>
             {/* E-COMMERCE MANAGEMENT */}
             <div>
               <div className="ml-1">
@@ -581,13 +587,6 @@ export function AppSidebar({
               )}
             </div>
 
-            {/* ORDER MANAGEMENT */}
-            <div className="ml-1">
-              {renderSection(
-                "ORDER MANAGEMENT",
-                navigationItems.orderManagement
-              )}
-            </div>
             {/* REVIEW MANAGEMENT */}
             <div key="review-management-section" className="space-y-2 ">
               {!isCollapsed && (

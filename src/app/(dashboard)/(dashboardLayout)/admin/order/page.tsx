@@ -518,6 +518,7 @@ import {
   CircleChevronDown,
   Search,
   Printer,
+  ChevronDown,
 } from "lucide-react";
 
 import {
@@ -730,7 +731,7 @@ const OrderPage = () => {
 
       setActiveTab(newStatus);
       setExpandedOrder(null);
-    } catch (error) {
+    } catch {
       alert("Failed to update status. Please try again.");
     }
   };
@@ -822,13 +823,23 @@ const OrderPage = () => {
                     <TableHead className="text-gray-400">CUSTOMER</TableHead>
                     <TableHead className="text-gray-400">TOTAL</TableHead>
                     <TableHead className="text-gray-400">PROFIT</TableHead>
-                    <TableHead className="text-gray-400">STATUS</TableHead>
+                    <TableHead className="text-gray-400">STATUS -ACTION</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {currentOrders.map((item) => (
-                    <TableRow key={item.order_id}>
+                    <TableRow 
+                      key={item.order_id}
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() =>
+                        setExpandedOrder(
+                          expandedOrder === item.order_id
+                            ? null
+                            : item.order_id
+                        )
+                      }
+                    >
                       <TableCell className="text-center">
                         <button
                           className="rounded-full border p-1 text-gray-500"
@@ -865,11 +876,13 @@ const OrderPage = () => {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button
-                              className={`flex items-center gap-1 text-xs px-2 py-1 rounded-md ${getStatusColor(
+                              className={`flex items-center gap-1 text-xs px-3 py-2 rounded-md border-2 border-dashed border-gray-400 hover:border-solid hover:border-gray-600 hover:shadow-md transition-all cursor-pointer ${getStatusColor(
                                 item.status
                               )}`}
+                              onClick={(e) => e.stopPropagation()}
                             >
                               {formatStatus(item.status)}
+                              <ChevronDown size={12} />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
@@ -930,6 +943,34 @@ const OrderPage = () => {
                       Order <span className="font-bold">{rawOrder._id}</span>
                     </h2>
                     <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-600">Status:</span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className={`flex items-center gap-1 text-sm px-3 py-2 rounded-md border-2 border-dashed border-gray-400 hover:border-solid hover:border-gray-600 hover:shadow-md transition-all cursor-pointer ${getStatusColor(
+                              rawOrder.orderInfo?.[0]?.status || "pending"
+                            )}`}
+                          >
+                            {formatStatus(rawOrder.orderInfo?.[0]?.status || "pending")}
+                            <ChevronDown size={14} />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          {ORDER_STATUSES.map((statusOption) => (
+                            <DropdownMenuItem
+                              key={statusOption}
+                              onSelect={() =>
+                                handleStatusChange(
+                                  rawOrder._id,
+                                  statusOption
+                                )
+                              }
+                            >
+                              {formatStatus(statusOption)}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <button
                         onClick={() => {
                           // Get product names from the modal table

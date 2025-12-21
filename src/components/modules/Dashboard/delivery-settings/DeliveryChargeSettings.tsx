@@ -12,30 +12,13 @@ import {
   IDeliveryCharge,
 } from "@/redux/featured/settings/settingsApi";
 
-const COURIERS = [
-  { key: "steadfast", name: "Steadfast", color: "bg-blue-100 text-blue-800" },
-  { key: "pathao", name: "Pathao", color: "bg-green-100 text-green-800" },
-  { key: "redx", name: "RedX", color: "bg-red-100 text-red-800" },
-  { key: "sundarban", name: "Sundarban", color: "bg-orange-100 text-orange-800" },
-];
-
 export default function DeliveryChargeSettings() {
   const { data: settingsData, isLoading: isFetching } = useGetSettingsQuery();
   const [updateSettings, { isLoading: isUpdating }] = useUpdateSettingsMutation();
 
   const [deliveryCharge, setDeliveryCharge] = useState<IDeliveryCharge>({
-    insideDhaka: {
-      steadfast: 60,
-      pathao: 65,
-      redx: 70,
-      sundarban: 55,
-    },
-    outsideDhaka: {
-      steadfast: 100,
-      pathao: 110,
-      redx: 120,
-      sundarban: 90,
-    },
+    insideDhaka: 60,
+    outsideDhaka: 120,
   });
 
   useEffect(() => {
@@ -46,16 +29,12 @@ export default function DeliveryChargeSettings() {
 
   const handleChargeChange = (
     zone: "insideDhaka" | "outsideDhaka",
-    courier: string,
     value: string
   ) => {
     const numValue = parseInt(value) || 0;
     setDeliveryCharge(prev => ({
       ...prev,
-      [zone]: {
-        ...prev[zone],
-        [courier]: numValue,
-      },
+      [zone]: numValue,
     }));
   };
 
@@ -63,13 +42,8 @@ export default function DeliveryChargeSettings() {
     try {
       const formData = new FormData();
       
-      Object.entries(deliveryCharge.insideDhaka).forEach(([courier, charge]) => {
-        formData.append(`deliveryCharge[insideDhaka][${courier}]`, charge.toString());
-      });
-      
-      Object.entries(deliveryCharge.outsideDhaka).forEach(([courier, charge]) => {
-        formData.append(`deliveryCharge[outsideDhaka][${courier}]`, charge.toString());
-      });
+      formData.append(`deliveryCharge[insideDhaka]`, deliveryCharge.insideDhaka.toString());
+      formData.append(`deliveryCharge[outsideDhaka]`, deliveryCharge.outsideDhaka.toString());
 
       const result = await updateSettings(formData).unwrap();
 
@@ -103,22 +77,18 @@ export default function DeliveryChargeSettings() {
             <CardTitle className="text-lg text-green-700">Inside Dhaka</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {COURIERS.map(({ key, name, color }) => (
-              <div key={key} className="flex items-center justify-between">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${color}`}>
-                  {name}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">৳</span>
-                  <Input
-                    type="number"
-                    className="w-20 text-center"
-                    value={deliveryCharge.insideDhaka[key as keyof typeof deliveryCharge.insideDhaka]}
-                    onChange={(e) => handleChargeChange("insideDhaka", key, e.target.value)}
-                  />
-                </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Delivery Charge</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">৳</span>
+                <Input
+                  type="number"
+                  className="w-20 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  value={deliveryCharge.insideDhaka}
+                  onChange={(e) => handleChargeChange("insideDhaka", e.target.value)}
+                />
               </div>
-            ))}
+            </div>
           </CardContent>
         </Card>
 
@@ -127,22 +97,18 @@ export default function DeliveryChargeSettings() {
             <CardTitle className="text-lg text-blue-700">Outside Dhaka</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {COURIERS.map(({ key, name, color }) => (
-              <div key={key} className="flex items-center justify-between">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${color}`}>
-                  {name}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">৳</span>
-                  <Input
-                    type="number"
-                    className="w-20 text-center"
-                    value={deliveryCharge.outsideDhaka[key as keyof typeof deliveryCharge.outsideDhaka]}
-                    onChange={(e) => handleChargeChange("outsideDhaka", key, e.target.value)}
-                  />
-                </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Delivery Charge</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">৳</span>
+                <Input
+                  type="number"
+                  className="w-20 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  value={deliveryCharge.outsideDhaka}
+                  onChange={(e) => handleChargeChange("outsideDhaka", e.target.value)}
+                />
               </div>
-            ))}
+            </div>
           </CardContent>
         </Card>
       </div>
