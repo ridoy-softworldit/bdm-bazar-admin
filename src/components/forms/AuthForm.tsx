@@ -117,7 +117,7 @@ export default function AuthForm({ type }: AuthFormProps) {
             {type === "register" ? "Register" : "Login"}
           </Button>
           {/* google login */}
-          <div className="flex flex-col items-center gap-4 mt-4">
+          {/* <div className="flex flex-col items-center gap-4 mt-4">
             <hr className="w-full border-gray-300" />
             <Button
               variant={"outline"}
@@ -128,7 +128,7 @@ export default function AuthForm({ type }: AuthFormProps) {
               <Image src="/google.png" alt="logo" width={20} height={20} />
               Continue with Google
             </Button>
-          </div>
+          </div> */}
         </form>
         {/* reg / login link */}
         <div className="mt-4 text-sm text-center">

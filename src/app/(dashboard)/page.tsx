@@ -20,8 +20,15 @@ export default function DashboardPage() {
     setLoading(false);
   }, [currentUser, router]);
 
+  if (!currentUser) {
+    router.push("/auth/login");
+    return null;
+  }
+
   if (loading) return <div>Loading...</div>;
 
   if (currentUser?.role === "admin") return <AdminDashboard />;
-  return <VendorDashboard />;
+  if (currentUser?.role === "vendor") return <VendorDashboard />;
+  // Default to admin dashboard if role is undefined
+  return <AdminDashboard />;
 }
