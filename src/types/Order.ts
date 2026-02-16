@@ -40,6 +40,8 @@ export interface Order {
   totalAmount: number;
   deliveryCharge?: number;
   paymentInfo: string;
+  trackingNumber?: string;
+  courierProvider?: string;
   createdAt: string;
   updatedAt: string;
   __v?: number;

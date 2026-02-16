@@ -75,6 +75,7 @@ const VALID_STATUSES = [
 ] as const;
 
 const orderApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     // Get All Orders
     getAllOrders: builder.query<Order[], void>({
@@ -168,6 +169,19 @@ const orderApi = baseApi.injectEndpoints({
         }
       },
     }),
+
+    // Update Order (for tracking number, courier provider, etc.)
+    updateOrder: builder.mutation<
+      Order,
+      { id: string; payload: Partial<Order> }
+    >({
+      query: ({ id, payload }) => ({
+        url: `/order/${id}`,
+        method: "PATCH",
+        body: payload,
+      }),
+      transformResponse: (response: { data: Order }) => response.data,
+    }),
   }),
 });
 
@@ -179,4 +193,5 @@ export const {
   useCreateOrderMutation,
   useGetOrderRangeSummaryQuery,
   useUpdateOrderStatusMutation,
+  useUpdateOrderMutation,
 } = orderApi;

@@ -540,8 +540,18 @@ import {
 import {
   useGetAllOrdersQuery,
   useUpdateOrderStatusMutation,
+  useUpdateOrderMutation,
 } from "@/redux/featured/order/orderApi";
+import {
+  useCreateOrderMutation as useSteadfastCreateOrderMutation,
+} from "@/redux/featured/courier/steadfastApi";
+import {
+  useCreateOrderMutation as usePathaoCreateOrderMutation,
+} from "@/redux/featured/courier/pathaoApi";
 import { useGetSingleProductQuery } from "@/redux/featured/products/productsApi";
+import MultiCourierModal from "@/components/courier/MultiCourierModal";
+import { CourierProvider, SteadfastForm, PathaoForm, CourierResult, PendingStatusUpdate } from '@/types/Courier';
+import toast from 'react-hot-toast';
 
 // Model অনুযায়ী Status
 const ORDER_STATUSES = [
@@ -611,6 +621,9 @@ const ProductName = ({ productId, onNameLoaded }: { productId: string; onNameLoa
 const OrderPage = () => {
   const { data: orderData = [] } = useGetAllOrdersQuery();
   const [updateOrderStatus] = useUpdateOrderStatusMutation();
+  const [updateOrder] = useUpdateOrderMutation();
+  const [createSteadfastOrder, { isLoading: steadfastLoading }] = useSteadfastCreateOrderMutation();
+  const [createPathaoOrder, { isLoading: pathaoLoading }] = usePathaoCreateOrderMutation();
 
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<OrderStatus>("pending");
@@ -618,6 +631,36 @@ const OrderPage = () => {
   const [searchValue, setSearchValue] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [showCourierModal, setShowCourierModal] = useState(false);
+  const [selectedOrderForCourier, setSelectedOrderForCourier] = useState<any>(null);
+  const [selectedCourier, setSelectedCourier] = useState<CourierProvider | null>(null);
+  const [courierStep, setCourierStep] = useState<'select' | 'form'>('select');
+  const [courierResult, setCourierResult] = useState<CourierResult | null>(null);
+  const [ordersWithCourier, setOrdersWithCourier] = useState<Set<string>>(new Set());
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<PendingStatusUpdate | null>(null);
+  const [steadfastForm, setSteadfastForm] = useState<SteadfastForm>({
+    invoice: '',
+    recipient_name: '',
+    recipient_phone: '',
+    recipient_address: '',
+    cod_amount: 0,
+    item_description: '',
+    total_lot: 1
+  });
+  const [pathaoForm, setPathaoForm] = useState<PathaoForm>({
+    store_id: 0,
+    merchant_order_id: '',
+    recipient_name: '',
+    recipient_phone: '',
+    recipient_address: '',
+    delivery_type: 48,
+    item_type: 2,
+    special_instruction: '',
+    item_quantity: 1,
+    item_weight: '0.5',
+    item_description: '',
+    amount_to_collect: 0
+  });
 
   const [ordersByStatus, setOrdersByStatus] = useState<
     Record<OrderStatus, Order[]>
@@ -705,6 +748,48 @@ const OrderPage = () => {
     orderId: string,
     newStatus: OrderStatus
   ) => {
+    // Check if status change should trigger courier order creation
+    if ((newStatus === "processing" || newStatus === "at-local-facility") && !ordersWithCourier.has(orderId)) {
+      const rawOrder = orderData.find((o: any) => o._id === orderId);
+      if (rawOrder) {
+        setSelectedOrderForCourier(rawOrder);
+        setPendingStatusUpdate({ orderId, newStatus });
+        
+        // Pre-fill forms with order data
+        const commonData = {
+          recipient_name: `${rawOrder.customerInfo.firstName} ${rawOrder.customerInfo.lastName}`,
+          recipient_phone: (rawOrder.customerInfo.phone || "").replace(/^\+?88/, '').replace(/^0?/, '0'),
+          recipient_address: `${rawOrder.customerInfo.address}, ${rawOrder.customerInfo.city}` || "",
+          item_description: "Order items",
+        };
+        
+        setSteadfastForm({
+          invoice: rawOrder._id,
+          ...commonData,
+          cod_amount: rawOrder.totalAmount || 0,
+          total_lot: 1
+        });
+        
+        setPathaoForm({
+          store_id: 0,
+          merchant_order_id: rawOrder._id,
+          ...commonData,
+          delivery_type: 48,
+          item_type: 2,
+          special_instruction: '',
+          item_quantity: 1,
+          item_weight: '0.5',
+          amount_to_collect: rawOrder.totalAmount || 0
+        });
+        
+        setCourierResult(null);
+        setSelectedCourier(null);
+        setCourierStep('select');
+        setShowCourierModal(true);
+        return;
+      }
+    }
+
     const currentStatus = Object.keys(ordersByStatus).find((status) =>
       ordersByStatus[status as OrderStatus].some((o) => o.order_id === orderId)
     ) as OrderStatus;
@@ -734,6 +819,98 @@ const OrderPage = () => {
     } catch {
       alert("Failed to update status. Please try again.");
     }
+  };
+
+  const handleCourierOrderCreate = async () => {
+    if (!selectedCourier) return;
+    
+    try {
+      let result: any;
+      let trackingCode = 'N/A';
+      
+      if (selectedCourier === 'steadfast') {
+        result = await createSteadfastOrder(steadfastForm).unwrap();
+        trackingCode = result?.tracking_code || 'N/A';
+      } else if (selectedCourier === 'pathao') {
+        result = await createPathaoOrder(pathaoForm).unwrap();
+        trackingCode = result?.data?.data?.consignment_id || 'N/A';
+      }
+      
+      setCourierResult({ success: true, data: result });
+      
+      // Mark this order as having a courier order
+      if (selectedOrderForCourier) {
+        setOrdersWithCourier(prev => new Set([...prev, selectedOrderForCourier._id]));
+      }
+      
+      // Update status if pending
+      if (pendingStatusUpdate) {
+        try {
+          await updateOrderStatus({ 
+            orderId: pendingStatusUpdate.orderId, 
+            status: pendingStatusUpdate.newStatus as OrderStatus
+          }).unwrap();
+          
+          const currentStatus = Object.keys(ordersByStatus).find((status) =>
+            ordersByStatus[status as OrderStatus].some(
+              (o) => o.order_id === pendingStatusUpdate.orderId
+            )
+          ) as OrderStatus;
+
+          if (currentStatus) {
+            const updatedOrder = ordersByStatus[currentStatus].find(
+              (o) => o.order_id === pendingStatusUpdate.orderId
+            );
+            if (updatedOrder) {
+              const newOrder = { ...updatedOrder, status: pendingStatusUpdate.newStatus as OrderStatus };
+              setOrdersByStatus((prev) => ({
+                ...prev,
+                [currentStatus]: prev[currentStatus].filter(
+                  (o) => o.order_id !== pendingStatusUpdate.orderId
+                ),
+                [pendingStatusUpdate.newStatus]: [newOrder, ...prev[pendingStatusUpdate.newStatus as OrderStatus]],
+              }));
+            }
+          }
+          
+          toast.success(`${selectedCourier.toUpperCase()} order created! Tracking: ${trackingCode}`);
+        } catch (statusError: any) {
+          console.error('Status update failed:', statusError);
+          toast.success(`${selectedCourier.toUpperCase()} order created! Tracking: ${trackingCode}`);
+        }
+      } else {
+        toast.success(`${selectedCourier.toUpperCase()} order created! Tracking: ${trackingCode}`);
+      }
+      
+      handleCloseCourierModal();
+    } catch (err) {
+      const error = err as { data?: { message?: string }; message?: string };
+      setCourierResult({
+        success: false,
+        error: error?.data?.message || error?.message || "Something went wrong",
+      });
+      toast.error(`Failed to create ${selectedCourier} order`);
+    }
+  };
+  
+  const handleCloseCourierModal = () => {
+    setShowCourierModal(false);
+    setSelectedOrderForCourier(null);
+    setPendingStatusUpdate(null);
+    setCourierResult(null);
+    setSelectedCourier(null);
+    setCourierStep('select');
+  };
+  
+  const handleCourierSelect = (courier: CourierProvider) => {
+    setSelectedCourier(courier);
+    setCourierStep('form');
+  };
+  
+  const handleBackToSelection = () => {
+    setCourierStep('select');
+    setSelectedCourier(null);
+    setCourierResult(null);
   };
 
   // Clear Date Filter
@@ -828,9 +1005,9 @@ const OrderPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {currentOrders.map((item) => (
+                  {currentOrders.map((item, index) => (
                     <TableRow 
-                      key={item.order_id}
+                      key={`${item.order_id}-${index}`}
                       className="cursor-pointer hover:bg-gray-50"
                       onClick={() =>
                         setExpandedOrder(
@@ -873,34 +1050,41 @@ const OrderPage = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              className={`flex items-center gap-1 text-xs px-3 py-2 rounded-md border-2 border-dashed border-gray-400 hover:border-solid hover:border-gray-600 hover:shadow-md transition-all cursor-pointer ${getStatusColor(
-                                item.status
-                              )}`}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {formatStatus(item.status)}
-                              <ChevronDown size={12} />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            {ORDER_STATUSES.map((statusOption) => (
-                              <DropdownMenuItem
-                                key={statusOption}
-                                onSelect={() =>
-                                  handleStatusChange(
-                                    item.order_id,
-                                    statusOption
-                                  )
-                                }
+                        <div className="flex items-center gap-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                className={`flex items-center gap-1 text-xs px-3 py-2 rounded-md border-2 border-dashed border-gray-400 hover:border-solid hover:border-gray-600 hover:shadow-md transition-all cursor-pointer ${getStatusColor(
+                                  item.status
+                                )}`}
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                {formatStatus(statusOption)}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                                {formatStatus(item.status)}
+                                <ChevronDown size={12} />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              {ORDER_STATUSES.map((statusOption) => (
+                                <DropdownMenuItem
+                                  key={statusOption}
+                                  onSelect={() =>
+                                    handleStatusChange(
+                                      item.order_id,
+                                      statusOption
+                                    )
+                                  }
+                                >
+                                  {formatStatus(statusOption)}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          {ordersWithCourier.has(item.order_id) && (
+                            <span className="text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded" title="Courier order created">
+                              📦
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1167,6 +1351,25 @@ const OrderPage = () => {
           </div>
         </div>
       )}
+
+      {/* Multi-Courier Order Creation Modal */}
+      <MultiCourierModal
+        showModal={showCourierModal}
+        courierStep={courierStep}
+        selectedCourier={selectedCourier}
+        pendingStatusUpdate={pendingStatusUpdate}
+        steadfastForm={steadfastForm}
+        pathaoForm={pathaoForm}
+        courierResult={courierResult}
+        steadfastLoading={steadfastLoading}
+        pathaoLoading={pathaoLoading}
+        onClose={handleCloseCourierModal}
+        onCourierSelect={handleCourierSelect}
+        onBackToSelection={handleBackToSelection}
+        onSteadfastFormChange={setSteadfastForm}
+        onPathaoFormChange={setPathaoForm}
+        onCreateOrder={handleCourierOrderCreate}
+      />
     </>
   );
 };

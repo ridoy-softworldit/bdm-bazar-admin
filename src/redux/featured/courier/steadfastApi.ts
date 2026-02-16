@@ -70,6 +70,7 @@ interface ApiResponse<T> {
 // RTK QUERY
 // ==========================
 export const steadfastApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     // 💰 Get Balance
     getBalance: builder.query<ISteadfastBalance, void>({
