@@ -543,7 +543,7 @@ import {
   useUpdateOrderMutation,
 } from "@/redux/featured/order/orderApi";
 import {
-  useCreateOrderMutation as useSteadfastCreateOrderMutation,
+  useCreateSteadfastOrderMutation,
 } from "@/redux/featured/courier/steadfastApi";
 import {
   useCreateOrderMutation as usePathaoCreateOrderMutation,
@@ -622,7 +622,7 @@ const OrderPage = () => {
   const { data: orderData = [] } = useGetAllOrdersQuery();
   const [updateOrderStatus] = useUpdateOrderStatusMutation();
   const [updateOrder] = useUpdateOrderMutation();
-  const [createSteadfastOrder, { isLoading: steadfastLoading }] = useSteadfastCreateOrderMutation();
+  const [createSteadfastOrder, { isLoading: steadfastLoading }] = useCreateSteadfastOrderMutation();
   const [createPathaoOrder, { isLoading: pathaoLoading }] = usePathaoCreateOrderMutation();
 
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
@@ -644,8 +644,7 @@ const OrderPage = () => {
     recipient_phone: '',
     recipient_address: '',
     cod_amount: 0,
-    item_description: '',
-    total_lot: 1
+    note: ''
   });
   const [pathaoForm, setPathaoForm] = useState<PathaoForm>({
     store_id: 0,
@@ -767,7 +766,7 @@ const OrderPage = () => {
           invoice: rawOrder._id,
           ...commonData,
           cod_amount: rawOrder.totalAmount || 0,
-          total_lot: 1
+          note: "Order items"
         });
         
         setPathaoForm({
@@ -829,10 +828,14 @@ const OrderPage = () => {
       let trackingCode = 'N/A';
       
       if (selectedCourier === 'steadfast') {
+        console.log('Creating Steadfast order with data:', steadfastForm);
         result = await createSteadfastOrder(steadfastForm).unwrap();
+        console.log('Steadfast result:', result);
         trackingCode = result?.tracking_code || 'N/A';
       } else if (selectedCourier === 'pathao') {
+        console.log('Creating Pathao order with data:', pathaoForm);
         result = await createPathaoOrder(pathaoForm).unwrap();
+        console.log('Pathao result:', result);
         trackingCode = result?.data?.data?.consignment_id || 'N/A';
       }
       
@@ -885,11 +888,12 @@ const OrderPage = () => {
       handleCloseCourierModal();
     } catch (err) {
       const error = err as { data?: { message?: string }; message?: string };
+      console.error('Courier order creation error:', error);
       setCourierResult({
         success: false,
         error: error?.data?.message || error?.message || "Something went wrong",
       });
-      toast.error(`Failed to create ${selectedCourier} order`);
+      toast.error(`Failed to create ${selectedCourier} order: ${error?.data?.message || error?.message || 'Unknown error'}`);
     }
   };
   

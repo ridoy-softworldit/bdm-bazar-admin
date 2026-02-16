@@ -229,16 +229,6 @@ export default function MultiCourierModal({
                       min="0"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Lot</label>
-                    <input
-                      type="number"
-                      value={steadfastForm.total_lot}
-                      onChange={(e) => handleSteadfastChange('total_lot', Math.max(1, Number(e.target.value)))}
-                      className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      min="1"
-                    />
-                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Address *</label>
@@ -251,13 +241,13 @@ export default function MultiCourierModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Item Description</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Note</label>
                   <textarea
-                    value={steadfastForm.item_description}
-                    onChange={(e) => handleSteadfastChange('item_description', e.target.value)}
+                    value={steadfastForm.note || ''}
+                    onChange={(e) => handleSteadfastChange('note', e.target.value)}
                     className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     rows={2}
-                    placeholder="Product details"
+                    placeholder="Delivery instructions or notes"
                   />
                 </div>
               </div>

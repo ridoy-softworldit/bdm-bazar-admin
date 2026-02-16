@@ -2,9 +2,9 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import {
-  useGetBalanceQuery,
-  useCreateOrderMutation as useSteadfastCreateOrder,
-  useLazyGetStatusByInvoiceQuery,
+  useGetSteadfastBalanceQuery,
+  useCreateSteadfastOrderMutation,
+  useLazyGetSteadfastStatusByInvoiceQuery,
 } from "@/redux/featured/courier/steadfastApi";
 import {
   useCreateOrderMutation as usePathaoCreateOrder,
@@ -23,9 +23,9 @@ export default function CourierManagement() {
   const [selectedCourier, setSelectedCourier] = useState<CourierProvider>('steadfast');
   const [activeTab, setActiveTab] = useState('order');
 
-  const { data: balance, refetch: refetchBalance } = useGetBalanceQuery();
-  const [createSteadfastOrder, { isLoading: steadfastOrderLoading }] = useSteadfastCreateOrder();
-  const [getStatusByInvoice] = useLazyGetStatusByInvoiceQuery();
+  const { data: balance, refetch: refetchBalance } = useGetSteadfastBalanceQuery();
+  const [createSteadfastOrder, { isLoading: steadfastOrderLoading }] = useCreateSteadfastOrderMutation();
+  const [getStatusByInvoice] = useLazyGetSteadfastStatusByInvoiceQuery();
   const [getPathaoOrderInfo] = useLazyGetOrderInfoQuery();
 
   const [createPathaoOrder, { isLoading: pathaoOrderLoading }] = usePathaoCreateOrder();
@@ -37,7 +37,7 @@ export default function CourierManagement() {
   const [issueToken] = useIssueTokenMutation();
 
   const [steadfastForm, setSteadfastForm] = useState({
-    invoice: '', recipient_name: '', recipient_phone: '', recipient_address: '', cod_amount: 0, item_description: '', total_lot: 1
+    invoice: '', recipient_name: '', recipient_phone: '', recipient_address: '', cod_amount: 0, note: ''
   });
 
   const [pathaoForm, setPathaoForm] = useState({
@@ -60,21 +60,45 @@ export default function CourierManagement() {
   const handleCreateOrder = async () => {
     try {
       if (selectedCourier === 'steadfast') {
+        console.log('Creating Steadfast order:', steadfastForm);
         const result = await createSteadfastOrder(steadfastForm).unwrap();
+        console.log('Steadfast result:', result);
         const trackingCode = (result as any).tracking_code || 'N/A';
         setOrderResult({ success: true, data: result });
         toast.success(`Order created! Tracking: ${trackingCode}`);
-        setSteadfastForm({ invoice: '', recipient_name: '', recipient_phone: '', recipient_address: '', cod_amount: 0, item_description: '', total_lot: 1 });
+        setSteadfastForm({ invoice: '', recipient_name: '', recipient_phone: '', recipient_address: '', cod_amount: 0, note: '' });
       } else {
         await issueToken().unwrap();
+        console.log('Creating Pathao order:', pathaoForm);
         const result = await createPathaoOrder(pathaoForm as any).unwrap();
+        console.log('Pathao result:', result);
         setOrderResult({ success: true, data: result });
         const consignmentId = (result as any)?.data?.data?.consignment_id || 'N/A';
         toast.success(`Order created! Consignment: ${consignmentId}`);
         setPathaoForm({ store_id: 0, merchant_order_id: '', recipient_name: '', recipient_phone: '', recipient_address: '', delivery_type: 48, item_type: 2, special_instruction: '', item_quantity: 1, item_weight: '0.5', item_description: '', amount_to_collect: 0 });
       }
     } catch (err: any) {
-      toast.error(err?.data?.message || 'Failed');
+      console.error('Order creation error:', err);
+      
+      // Extract error message from various possible error structures
+      let errorMsg = 'Failed to create order';
+      
+      if (err?.data?.message) {
+        errorMsg = err.data.message;
+      } else if (err?.message) {
+        errorMsg = err.message;
+      } else if (err?.error) {
+        errorMsg = typeof err.error === 'string' ? err.error : 'Failed to create order';
+      } else if (err?.status === 500) {
+        errorMsg = 'Server error. Please check API credentials.';
+      }
+      
+      // Show user-friendly error for invalid credentials
+      if (errorMsg.toLowerCase().includes('invalid') && errorMsg.toLowerCase().includes('credential')) {
+        toast.error('⚠️ Invalid API credentials. Contact Steadfast support for valid credentials.');
+      } else {
+        toast.error(errorMsg);
+      }
     }
   };
 

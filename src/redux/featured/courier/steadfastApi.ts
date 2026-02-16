@@ -19,7 +19,11 @@ export interface ISteadfastOrder {
   recipient_phone: string;
   recipient_address: string;
   cod_amount: number;
-  // note: string;
+  note?: string;
+  alternative_phone?: string;
+  recipient_email?: string;
+  item_description?: string;
+  delivery_type?: number;
 }
 
 export interface ISteadfastOrderResponse {
@@ -73,24 +77,45 @@ export const steadfastApi = baseApi.injectEndpoints({
   overrideExisting: true,
   endpoints: (builder) => ({
     // 💰 Get Balance
-    getBalance: builder.query<ISteadfastBalance, void>({
+    getSteadfastBalance: builder.query<ISteadfastBalance, void>({
       query: () => "/steadfast/balance",
-      transformResponse: (response: ApiResponse<ISteadfastBalance>) => response.data,
-
+      transformResponse: (response: any) => {
+        // Backend wraps: {success, message, data: {status, current_balance}}
+        return response?.data || response;
+      },
     }),
 
     // 📦 Create Order
-    createOrder: builder.mutation<ISteadfastOrderResponse, ISteadfastOrder>({
-      query: (orderData) => ({
-        url: "/steadfast/create-order",
-        method: "POST",
-        body: orderData,
-      }),
-      transformResponse: (response: ApiResponse<ISteadfastOrderResponse>) => response.data,
+    createSteadfastOrder: builder.mutation<any, ISteadfastOrder>({
+      query: (orderData) => {
+        const payload = {
+          invoice: orderData.invoice,
+          recipient_name: orderData.recipient_name,
+          recipient_phone: orderData.recipient_phone,
+          recipient_address: orderData.recipient_address,
+          cod_amount: orderData.cod_amount,
+          note: orderData.item_description || orderData.note || '',
+          ...(orderData.alternative_phone && { alternative_phone: orderData.alternative_phone }),
+          ...(orderData.recipient_email && { recipient_email: orderData.recipient_email }),
+          ...(orderData.delivery_type !== undefined && { delivery_type: orderData.delivery_type }),
+        };
+        const endpoint = "/steadfast/create-order";
+        console.log('🚚 STEADFAST API CALL:', endpoint);
+        console.log('📦 Payload:', payload);
+        return {
+          url: endpoint,
+          method: "POST",
+          body: payload,
+        };
+      },
+      transformResponse: (response: any) => {
+        console.log('✅ Steadfast Response:', response);
+        return response?.data?.consignment || response?.data || response;
+      },
     }),
 
     // 📦 Bulk Create Orders
-    bulkCreateOrders: builder.mutation<ISteadfastBulkOrderResponse, ISteadfastOrder[]>({
+    bulkCreateSteadfastOrders: builder.mutation<ISteadfastBulkOrderResponse, ISteadfastOrder[]>({
       query: (orders) => ({
         url: "/steadfast/bulk-order",
         method: "POST",
@@ -100,43 +125,43 @@ export const steadfastApi = baseApi.injectEndpoints({
     }),
 
     // 📍 Get Status by Invoice
-    getStatusByInvoice: builder.query<ISteadfastTracking, string>({
+    getSteadfastStatusByInvoice: builder.query<any, string>({
       query: (invoice) => `/steadfast/status/invoice/${invoice}`,
-      transformResponse: (response: ApiResponse<ISteadfastTracking>) => response.data,
+      transformResponse: (response: any) => response?.data || response,
     }),
 
     // 📍 Get Status by Consignment ID
-    getStatusByConsignmentId: builder.query<ISteadfastTracking, string>({
+    getSteadfastStatusByConsignmentId: builder.query<any, string>({
       query: (id) => `/steadfast/status/consignment/${id}`,
-      transformResponse: (response: ApiResponse<ISteadfastTracking>) => response.data,
+      transformResponse: (response: any) => response?.data || response,
     }),
 
     // 📍 Get Status by Tracking Code
-    getStatusByTrackingCode: builder.query<ISteadfastTracking, string>({
+    getSteadfastStatusByTrackingCode: builder.query<any, string>({
       query: (trackingCode) => `/steadfast/status/tracking/${trackingCode}`,
-      transformResponse: (response: ApiResponse<ISteadfastTracking>) => response.data,
+      transformResponse: (response: any) => response?.data || response,
     }),
 
     // 🔄 Create Return Request
-    createReturnRequest: builder.mutation<ISteadfastReturnRequest, Partial<ISteadfastReturnRequest>>({
+    createSteadfastReturnRequest: builder.mutation<any, Partial<ISteadfastReturnRequest>>({
       query: (payload) => ({
         url: "/steadfast/return-request",
         method: "POST",
         body: payload,
       }),
-      transformResponse: (response: ApiResponse<ISteadfastReturnRequest>) => response.data,
+      transformResponse: (response: any) => response?.data || response,
     }),
 
     // 🔄 Get Single Return Request
-    getReturnRequest: builder.query<ISteadfastReturnRequest, string>({
+    getSteadfastReturnRequest: builder.query<any, string>({
       query: (id) => `/steadfast/return-request/${id}`,
-      transformResponse: (response: ApiResponse<ISteadfastReturnRequest>) => response.data,
+      transformResponse: (response: any) => response?.data || response,
     }),
 
     // 🔄 Get All Return Requests
-    getReturnRequests: builder.query<ISteadfastReturnRequest[], void>({
+    getSteadfastReturnRequests: builder.query<any[], void>({
       query: () => "/steadfast/return-requests",
-      transformResponse: (response: ApiResponse<ISteadfastReturnRequest[]>) => response.data,
+      transformResponse: (response: any) => response?.data || response,
     }),
   }),
 });
@@ -145,18 +170,18 @@ export const steadfastApi = baseApi.injectEndpoints({
 // EXPORT HOOKS
 // ==========================
 export const {
-  useGetBalanceQuery,
-  useCreateOrderMutation,
-  useBulkCreateOrdersMutation,
-  useGetStatusByInvoiceQuery,
-  useGetStatusByConsignmentIdQuery,
-  useGetStatusByTrackingCodeQuery,
-  useCreateReturnRequestMutation,
-  useGetReturnRequestQuery,
-  useGetReturnRequestsQuery,
+  useGetSteadfastBalanceQuery,
+  useCreateSteadfastOrderMutation,
+  useBulkCreateSteadfastOrdersMutation,
+  useGetSteadfastStatusByInvoiceQuery,
+  useGetSteadfastStatusByConsignmentIdQuery,
+  useGetSteadfastStatusByTrackingCodeQuery,
+  useCreateSteadfastReturnRequestMutation,
+  useGetSteadfastReturnRequestQuery,
+  useGetSteadfastReturnRequestsQuery,
   
   // Lazy queries for on-demand fetching
-  useLazyGetStatusByInvoiceQuery,
-  useLazyGetStatusByConsignmentIdQuery,
-  useLazyGetStatusByTrackingCodeQuery,
+  useLazyGetSteadfastStatusByInvoiceQuery,
+  useLazyGetSteadfastStatusByConsignmentIdQuery,
+  useLazyGetSteadfastStatusByTrackingCodeQuery,
 } = steadfastApi;

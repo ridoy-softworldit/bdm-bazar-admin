@@ -6,8 +6,11 @@ export interface SteadfastForm {
   recipient_phone: string;
   recipient_address: string;
   cod_amount: number;
-  item_description: string;
-  total_lot: number;
+  note?: string;
+  alternative_phone?: string;
+  recipient_email?: string;
+  item_description?: string;
+  delivery_type?: number;
 }
 
 export interface PathaoForm {
