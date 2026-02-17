@@ -26,16 +26,22 @@ const reviewApi = baseApi.injectEndpoints({
         body: review,
       }),
     }),
-    // Fix: Update the mutation to accept status directly
+    // Alternative: Try different body format if backend expects it
     updateReviewStatus: builder.mutation<
-      { message: string; data: Review }, // Return type should include message
-      { id: string; status: "pending" | "approved" | "rejected" } // Correct parameter type
+      { message: string; data: Review },
+      { id: string; status: "pending" | "approved" | "rejected" }
     >({
-      query: ({ id, status }) => ({
-        url: `/reviews/${id}`,
-        method: "PATCH",
-        body: { status }, // Send status in the body
-      }),
+      query: ({ id, status }) => {
+        console.log('Updating review status:', { id, status });
+        // Try both formats - uncomment the one that works
+        return {
+          url: `/reviews/${id}`,
+          method: "PATCH",
+          body: { status }, // Format 1: { status: "approved" }
+          // body: { reviewStatus: status }, // Format 2: Try if Format 1 fails
+          // body: { data: { status } }, // Format 3: Nested format
+        };
+      },
       transformResponse: (response: { message: string; data: Review }) =>
         response,
       invalidatesTags: ["Review"],

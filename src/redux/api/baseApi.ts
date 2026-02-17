@@ -6,10 +6,22 @@ const baseURL = process.env.NEXT_PUBLIC_BASE_API;
 const baseQuery = fetchBaseQuery({
   baseUrl: baseURL,
   credentials: "include",
-  prepareHeaders: (headers, { getState }) => {
+  prepareHeaders: async (headers, { getState }) => {
     const token = (getState() as RootState).auth.token;
-    if (token) {
-      headers.set("authorization", `${token}`);
+    
+    if (!token) {
+      const { getSession } = await import('next-auth/react');
+      const session = await getSession();
+      console.log('Session:', session);
+      if (session?.user?.accessToken) {
+        console.log('Setting token from session:', session.user.accessToken);
+        headers.set("authorization", session.user.accessToken as string);
+      } else {
+        console.log('No accessToken in session');
+      }
+    } else {
+      console.log('Setting token from Redux:', token);
+      headers.set("authorization", token);
     }
     return headers;
   },

@@ -1380,10 +1380,12 @@ export default function ReviewsTable() {
 
   const handleApprove = async (id: string) => {
     try {
+      console.log('Approving review with ID:', id);
       const res = await updateStatus({ id, status: "approved" }).unwrap();
       toast.success(res.message || "Review approved successfully!");
       refetch();
     } catch (error: unknown) {
+      console.error('Error approving review:', error);
       const message =
         error && typeof error === "object" && "data" in error
           ? (error as { data?: { message?: string } }).data?.message

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Providers from "@/lib/providers";
 import { AuthProvider } from "@/provider/AuthProvider";
 import { Toaster } from "react-hot-toast";
+import { Toaster as Sonner } from "sonner";
 import "./globals.css";
 import { RedirectComponent } from "./redirect";
 
@@ -37,6 +38,7 @@ export default function RootLayout({
           </Providers>
         </AuthProvider>
         <Toaster position="top-right" />
+        <Sonner position="top-right" />
       </body>
     </html>
   );

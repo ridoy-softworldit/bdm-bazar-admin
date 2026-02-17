@@ -38,6 +38,7 @@ export const authOptions: NextAuthOptions = {
           role: json.data.role,
           gender: json.data.gender,
           walletPoint: json.data.walletPoint,
+          accessToken: json.data.accessToken,
         };
       },
     }),
@@ -90,6 +91,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.gender = user.gender;
         token.walletPoint = user.walletPoint;
+        token.accessToken = user.accessToken;
       }
       return token;
     },
@@ -100,6 +102,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
         session.user.gender = token.gender;
         session.user.walletPoint = token.walletPoint;
+        session.user.accessToken = token.accessToken;
       }
       return session;
     },

@@ -544,9 +544,12 @@ import {
 } from "@/redux/featured/order/orderApi";
 import {
   useCreateSteadfastOrderMutation,
+  useLazyGetSteadfastStatusByTrackingCodeQuery,
+  useLazyGetSteadfastStatusByInvoiceQuery,
 } from "@/redux/featured/courier/steadfastApi";
 import {
   useCreateOrderMutation as usePathaoCreateOrderMutation,
+  useLazyGetOrderInfoQuery as useLazyGetPathaoOrderInfoQuery,
 } from "@/redux/featured/courier/pathaoApi";
 import { useGetSingleProductQuery } from "@/redux/featured/products/productsApi";
 import MultiCourierModal from "@/components/courier/MultiCourierModal";
@@ -624,6 +627,9 @@ const OrderPage = () => {
   const [updateOrder] = useUpdateOrderMutation();
   const [createSteadfastOrder, { isLoading: steadfastLoading }] = useCreateSteadfastOrderMutation();
   const [createPathaoOrder, { isLoading: pathaoLoading }] = usePathaoCreateOrderMutation();
+  const [getSteadfastStatusByTracking] = useLazyGetSteadfastStatusByTrackingCodeQuery();
+  const [getSteadfastStatusByInvoice] = useLazyGetSteadfastStatusByInvoiceQuery();
+  const [getPathaoOrderInfo] = useLazyGetPathaoOrderInfoQuery();
 
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<OrderStatus>("pending");
@@ -638,6 +644,7 @@ const OrderPage = () => {
   const [courierResult, setCourierResult] = useState<CourierResult | null>(null);
   const [ordersWithCourier, setOrdersWithCourier] = useState<Set<string>>(new Set());
   const [pendingStatusUpdate, setPendingStatusUpdate] = useState<PendingStatusUpdate | null>(null);
+  const [trackingModal, setTrackingModal] = useState<{ show: boolean; data: any; loading: boolean }>({ show: false, data: null, loading: false });
   const [steadfastForm, setSteadfastForm] = useState<SteadfastForm>({
     invoice: '',
     recipient_name: '',
@@ -690,6 +697,14 @@ const OrderPage = () => {
     });
 
     const transformed = orderData.map(transformOrder);
+
+    // Mark orders that have tracking numbers
+    const ordersWithTracking = new Set(
+      orderData
+        .filter((o: any) => o.trackingNumber)
+        .map((o: any) => o._id)
+    );
+    setOrdersWithCourier(ordersWithTracking);
 
     const grouped: Record<OrderStatus, Order[]> = {
       pending: [],
@@ -825,28 +840,32 @@ const OrderPage = () => {
     
     try {
       let result: any;
-      let trackingCode = 'N/A';
+      let trackingCode = '';
       
       if (selectedCourier === 'steadfast') {
-        console.log('Creating Steadfast order with data:', steadfastForm);
         result = await createSteadfastOrder(steadfastForm).unwrap();
-        console.log('Steadfast result:', result);
-        trackingCode = result?.tracking_code || 'N/A';
+        // Steadfast returns: { consignment_id, tracking_code, status, invoice }
+        trackingCode = result?.tracking_code || result?.consignment?.tracking_code || '';
       } else if (selectedCourier === 'pathao') {
-        console.log('Creating Pathao order with data:', pathaoForm);
         result = await createPathaoOrder(pathaoForm).unwrap();
-        console.log('Pathao result:', result);
-        trackingCode = result?.data?.data?.consignment_id || 'N/A';
+        // Pathao returns: { data: { consignment_id, merchant_order_id, order_status, delivery_fee } }
+        trackingCode = result?.data?.consignment_id || '';
       }
       
       setCourierResult({ success: true, data: result });
       
-      // Mark this order as having a courier order
-      if (selectedOrderForCourier) {
-        setOrdersWithCourier(prev => new Set([...prev, selectedOrderForCourier._id]));
+      if (selectedOrderForCourier && trackingCode) {
+        try {
+          await updateOrder({
+            id: selectedOrderForCourier._id,
+            payload: { trackingNumber: trackingCode, courierProvider: selectedCourier }
+          }).unwrap();
+          setOrdersWithCourier(prev => new Set([...prev, selectedOrderForCourier._id]));
+        } catch (updateError) {
+          console.error('Failed to update order:', updateError);
+        }
       }
       
-      // Update status if pending
       if (pendingStatusUpdate) {
         try {
           await updateOrderStatus({ 
@@ -875,25 +894,18 @@ const OrderPage = () => {
               }));
             }
           }
-          
-          toast.success(`${selectedCourier.toUpperCase()} order created! Tracking: ${trackingCode}`);
-        } catch (statusError: any) {
-          console.error('Status update failed:', statusError);
-          toast.success(`${selectedCourier.toUpperCase()} order created! Tracking: ${trackingCode}`);
+          toast.success(`Order created! Tracking: ${trackingCode}`);
+        } catch (statusError) {
+          toast.success(`Order created! Tracking: ${trackingCode}`);
         }
       } else {
-        toast.success(`${selectedCourier.toUpperCase()} order created! Tracking: ${trackingCode}`);
+        toast.success(`Order created! Tracking: ${trackingCode}`);
       }
-      
       handleCloseCourierModal();
     } catch (err) {
       const error = err as { data?: { message?: string }; message?: string };
-      console.error('Courier order creation error:', error);
-      setCourierResult({
-        success: false,
-        error: error?.data?.message || error?.message || "Something went wrong",
-      });
-      toast.error(`Failed to create ${selectedCourier} order: ${error?.data?.message || error?.message || 'Unknown error'}`);
+      setCourierResult({ success: false, error: error?.data?.message || error?.message || "Failed" });
+      toast.error(error?.data?.message || error?.message || 'Failed to create order');
     }
   };
   
@@ -921,6 +933,38 @@ const OrderPage = () => {
   const clearDateFilter = () => {
     setStartDate("");
     setEndDate("");
+  };
+
+  const handleTrackOrder = async (orderId: string) => {
+    const rawOrder = orderData.find((o: any) => o._id === orderId);
+    if (!rawOrder?.trackingNumber) {
+      toast.error('No tracking number found');
+      return;
+    }
+
+    const trackingNumber = rawOrder.trackingNumber;
+    const courierType = rawOrder.courierProvider || 'steadfast';
+
+    setTrackingModal({ show: true, data: null, loading: true });
+
+    try {
+      let result;
+      if (courierType === 'pathao') {
+        // Pathao: GET /orders/:consignmentId/info
+        result = await getPathaoOrderInfo(trackingNumber).unwrap();
+      } else {
+        // Steadfast: Try tracking code, fallback to invoice
+        try {
+          result = await getSteadfastStatusByTracking(trackingNumber).unwrap();
+        } catch {
+          result = await getSteadfastStatusByInvoice(orderId).unwrap();
+        }
+      }
+      setTrackingModal({ show: true, data: result, loading: false });
+    } catch (error: any) {
+      toast.error('Failed to fetch tracking info');
+      setTrackingModal({ show: false, data: null, loading: false });
+    }
   };
 
   return (
@@ -1084,9 +1128,16 @@ const OrderPage = () => {
                             </DropdownMenuContent>
                           </DropdownMenu>
                           {ordersWithCourier.has(item.order_id) && (
-                            <span className="text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded" title="Courier order created">
-                              📦
-                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTrackOrder(item.order_id);
+                              }}
+                              className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 transition-colors"
+                              title="Track order"
+                            >
+                              📦 Track
+                            </button>
                           )}
                         </div>
                       </TableCell>
@@ -1352,6 +1403,44 @@ const OrderPage = () => {
                 </div>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Tracking Modal */}
+      {trackingModal.show && (
+        <div className="bg-[#00000085] fixed top-0 left-0 w-[100vw] h-[100vh] flex items-center justify-center z-50">
+          <div className="relative bg-white p-6 rounded-xl shadow-2xl w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setTrackingModal({ show: false, data: null, loading: false })}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl"
+            >
+              ✕
+            </button>
+            
+            <h2 className="text-2xl font-semibold mb-4">📦 Order Tracking</h2>
+            
+            {trackingModal.loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            ) : trackingModal.data ? (
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-semibold mb-3 text-lg">Tracking Information</h3>
+                  <div className="space-y-2">
+                    {Object.entries(trackingModal.data).map(([key, value]) => (
+                      <div key={key} className="flex justify-between border-b pb-2">
+                        <span className="font-medium text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>
+                        <span className="text-gray-800">{String(value ?? 'N/A')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">No tracking data available</p>
+            )}
           </div>
         </div>
       )}
