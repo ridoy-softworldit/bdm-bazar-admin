@@ -7,6 +7,7 @@ export interface Product {
   featuredImg: string;
   gallery: string[];
   previewImg: string[];
+  previewPdf?: string;
   video?: string;
   categoryAndTags: {
     publisher?: string;

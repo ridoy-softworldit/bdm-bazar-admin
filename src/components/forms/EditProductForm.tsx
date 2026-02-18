@@ -110,6 +110,9 @@ export default function EditProductForm({
     labelInterestedPreviousImg: [],
   });
 
+  // State for PDF link
+  const [pdfLink, setPdfLink] = useState<string>(product?.previewPdf || "");
+
   const categoryIds =
     product?.categoryAndTags?.categories?.map((cat: any) => cat._id) || [];
   // Extract tag IDs from full objects
@@ -272,6 +275,11 @@ export default function EditProductForm({
         // labelGalleryImages.labelInterestedPreviousImg?.length === 0
       ) {
         data.previewImg = labelGalleryImages.labelInterestedPreviousImg || [];
+      }
+
+      // Handle PDF link (optional)
+      if (pdfLink) {
+        data.previewPdf = pdfLink;
       }
 
       // ------------------------------------------------------------------------
@@ -996,6 +1004,31 @@ export default function EditProductForm({
                 label="Preview Image"
               />
             </div>
+
+            {/* PDF Link - Only for Books */}
+            {product?.bookInfo && (
+              <div className="space-y-2">
+                <label htmlFor="previewPdf" className="text-sm font-medium">
+                  PDF Preview Link (Optional)
+                  <span className="text-gray-500 text-xs ml-2">
+                    Upload PDF to Google Drive and paste preview link here
+                  </span>
+                </label>
+                <Input
+                  type="url"
+                  id="previewPdf"
+                  placeholder="https://drive.google.com/file/d/FILE_ID/preview"
+                  value={pdfLink}
+                  onChange={(e) => setPdfLink(e.target.value)}
+                />
+                <p className="text-xs text-gray-500">
+                  Format: https://drive.google.com/file/d/FILE_ID/preview
+                </p>
+                {pdfLink && (
+                  <p className="text-sm text-green-600">✓ Link added</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Organization */}

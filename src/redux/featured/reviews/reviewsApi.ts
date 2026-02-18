@@ -32,7 +32,6 @@ const reviewApi = baseApi.injectEndpoints({
       { id: string; status: "pending" | "approved" | "rejected" }
     >({
       query: ({ id, status }) => {
-        console.log('Updating review status:', { id, status });
         // Try both formats - uncomment the one that works
         return {
           url: `/reviews/${id}`,

@@ -100,8 +100,6 @@ export const steadfastApi = baseApi.injectEndpoints({
           ...(orderData.delivery_type !== undefined && { delivery_type: orderData.delivery_type }),
         };
         const endpoint = "/steadfast/create-order";
-        console.log('🚚 STEADFAST API CALL:', endpoint);
-        console.log('📦 Payload:', payload);
         return {
           url: endpoint,
           method: "POST",
@@ -109,7 +107,6 @@ export const steadfastApi = baseApi.injectEndpoints({
         };
       },
       transformResponse: (response: any) => {
-        console.log('✅ Steadfast Response:', response);
         return response?.data?.consignment || response?.data || response;
       },
     }),

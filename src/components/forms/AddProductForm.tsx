@@ -102,6 +102,9 @@ export default function AddProductForm() {
     labelInterestedPreviousImg: [],
   });
 
+  // State for PDF link
+  const [pdfLink, setPdfLink] = useState<string>("");
+
   // const form = useForm<CreateProductFormType>({
   const form = useForm({
     // resolver: zodResolver(createProductZodSchema),
@@ -214,6 +217,11 @@ export default function AddProductForm() {
         });
       }
 
+      // Handle PDF link (optional)
+      if (pdfLink) {
+        data.previewPdf = pdfLink;
+      }
+
       if (data) {
         formData.append("data", JSON.stringify(data));
       }
@@ -225,6 +233,7 @@ export default function AddProductForm() {
       router.push("/admin/all-product");
       setFeaturedImage(null);
       setGalleryImage([]);
+      setPdfLink("");
     } catch (error: any) {
       const errorMessage =
         error?.data?.errorSources?.[0]?.message ||
@@ -919,6 +928,31 @@ export default function AddProductForm() {
                   label="Preview Image"
                 />
               </div>
+
+              {/* PDF Link - Only for Books */}
+              {activeTab === "book" && (
+                <div className="space-y-2">
+                  <label htmlFor="previewPdf" className="text-sm font-medium">
+                    PDF Preview Link (Optional)
+                    <span className="text-gray-500 text-xs ml-2">
+                      Upload PDF to Google Drive and paste preview link here
+                    </span>
+                  </label>
+                  <Input
+                    type="url"
+                    id="previewPdf"
+                    placeholder="https://drive.google.com/file/d/FILE_ID/preview"
+                    value={pdfLink}
+                    onChange={(e) => setPdfLink(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500">
+                    Format: https://drive.google.com/file/d/FILE_ID/preview
+                  </p>
+                  {pdfLink && (
+                    <p className="text-sm text-green-600">✓ Link added</p>
+                  )}
+                </div>
+              )}
 
               <FormField
                 control={form.control}

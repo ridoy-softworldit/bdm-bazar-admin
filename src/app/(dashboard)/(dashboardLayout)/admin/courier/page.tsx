@@ -60,18 +60,14 @@ export default function CourierManagement() {
   const handleCreateOrder = async () => {
     try {
       if (selectedCourier === 'steadfast') {
-        console.log('Creating Steadfast order:', steadfastForm);
         const result = await createSteadfastOrder(steadfastForm).unwrap();
-        console.log('Steadfast result:', result);
         const trackingCode = (result as any).tracking_code || 'N/A';
         setOrderResult({ success: true, data: result });
         toast.success(`Order created! Tracking: ${trackingCode}`);
         setSteadfastForm({ invoice: '', recipient_name: '', recipient_phone: '', recipient_address: '', cod_amount: 0, note: '' });
       } else {
         await issueToken().unwrap();
-        console.log('Creating Pathao order:', pathaoForm);
         const result = await createPathaoOrder(pathaoForm as any).unwrap();
-        console.log('Pathao result:', result);
         setOrderResult({ success: true, data: result });
         const consignmentId = (result as any)?.data?.data?.consignment_id || 'N/A';
         toast.success(`Order created! Consignment: ${consignmentId}`);
