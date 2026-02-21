@@ -77,13 +77,29 @@ const VALID_STATUSES = [
 const orderApi = baseApi.injectEndpoints({
   overrideExisting: true,
   endpoints: (builder) => ({
-    // Get All Orders
-    getAllOrders: builder.query<Order[], void>({
-      query: () => ({
-        url: "/order",
-        method: "GET",
+    // Get All Orders with Pagination
+    getAllOrders: builder.query<
+      { data: Order[]; meta: { page: number; limit: number; total: number; totalPage: number } },
+      { page?: number; limit?: number; searchTerm?: string; sort?: string; status?: string } | void
+    >({
+      query: (params) => {
+        const queryParams = new URLSearchParams();
+        if (params) {
+          if (params.page) queryParams.append('page', params.page.toString());
+          if (params.limit) queryParams.append('limit', params.limit.toString());
+          if (params.searchTerm) queryParams.append('searchTerm', params.searchTerm);
+          if (params.sort) queryParams.append('sort', params.sort);
+          if (params.status) queryParams.append('orderInfo.status', params.status);
+        }
+        return {
+          url: `/order${queryParams.toString() ? `?${queryParams.toString()}` : ''}`,
+          method: "GET",
+        };
+      },
+      transformResponse: (response: { data: Order[]; meta: any }) => ({
+        data: response.data,
+        meta: response.meta,
       }),
-      transformResponse: (response: { data: Order[] }) => response.data,
     }),
 
     // Get Single Order
@@ -143,7 +159,7 @@ const orderApi = baseApi.injectEndpoints({
         // Patch for getAllOrders
         const patchAll = dispatch(
           orderApi.util.updateQueryData("getAllOrders", undefined, (draft) => {
-            const order = draft.find((o) => o._id === orderId);
+            const order = draft.data?.find((o) => o._id === orderId);
             if (order) {
               order.orderInfo.forEach((info) => {
                 info.status = status;

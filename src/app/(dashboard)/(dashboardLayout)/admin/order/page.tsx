@@ -569,7 +569,8 @@ const ORDER_STATUSES = [
 type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 type Order = {
-  order_id: string;
+  _id: string; // MongoDB ID for fetching
+  order_id: string; // Display ID
   created: string;
   createdDate: Date;
   customer: string;
@@ -622,7 +623,34 @@ const ProductName = ({ productId, onNameLoaded }: { productId: string; onNameLoa
 };
 
 const OrderPage = () => {
-  const { data: orderData = [] } = useGetAllOrdersQuery();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [activeTab, setActiveTab] = useState<OrderStatus>("pending");
+  
+  const { data: orderResponse, isLoading } = useGetAllOrdersQuery({ 
+    page: currentPage, 
+    limit: itemsPerPage,
+    status: activeTab
+  });
+  const orderData = orderResponse?.data || [];
+  const meta = orderResponse?.meta;
+  
+  // Fetch counts for all statuses
+  const { data: pendingCount } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'pending' });
+  const { data: processingCount } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'processing' });
+  const { data: atLocalCount } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'at-local-facility' });
+  const { data: outForDeliveryCount } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'out-for-delivery' });
+  const { data: completedCount } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'completed' });
+  const { data: cancelledCount } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'cancelled' });
+  
+  const statusCounts: Record<OrderStatus, number> = {
+    'pending': pendingCount?.meta?.total || 0,
+    'processing': processingCount?.meta?.total || 0,
+    'at-local-facility': atLocalCount?.meta?.total || 0,
+    'out-for-delivery': outForDeliveryCount?.meta?.total || 0,
+    'completed': completedCount?.meta?.total || 0,
+    'cancelled': cancelledCount?.meta?.total || 0,
+  };
   const [updateOrderStatus] = useUpdateOrderStatusMutation();
   const [updateOrder] = useUpdateOrderMutation();
   const [createSteadfastOrder, { isLoading: steadfastLoading }] = useCreateSteadfastOrderMutation();
@@ -632,7 +660,6 @@ const OrderPage = () => {
   const [getPathaoOrderInfo] = useLazyGetPathaoOrderInfoQuery();
 
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<OrderStatus>("pending");
   const [currentOrders, setCurrentOrders] = useState<Order[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -671,20 +698,24 @@ const OrderPage = () => {
   const [ordersByStatus, setOrdersByStatus] = useState<
     Record<OrderStatus, Order[]>
   >({
-    pending: [],
-    processing: [],
-    "at-local-facility": [],
-    "out-for-delivery": [],
-    completed: [],
-    cancelled: [],
+    'pending': [],
+    'processing': [],
+    'at-local-facility': [],
+    'out-for-delivery': [],
+    'completed': [],
+    'cancelled': [],
   });
 
-  // Transform & Group Orders
+  // Transform Orders
   useEffect(() => {
-    if (!orderData || orderData.length === 0) return;
+    if (!orderData || orderData.length === 0) {
+      setCurrentOrders([]);
+      return;
+    }
 
     const transformOrder = (raw: any): Order => ({
-      order_id: raw._id,
+      _id: raw._id,
+      order_id: raw.orderId || raw._id,
       created: new Date(raw.createdAt).toLocaleString(),
       createdDate: new Date(raw.createdAt),
       customer:
@@ -706,26 +737,8 @@ const OrderPage = () => {
     );
     setOrdersWithCourier(ordersWithTracking);
 
-    const grouped: Record<OrderStatus, Order[]> = {
-      pending: [],
-      processing: [],
-      "at-local-facility": [],
-      "out-for-delivery": [],
-      completed: [],
-      cancelled: [],
-    };
-
-    transformed.forEach((order) => {
-      if (ORDER_STATUSES.includes(order.status)) {
-        grouped[order.status].push(order);
-      } else {
-        grouped.pending.push(order);
-      }
-    });
-
-    setOrdersByStatus(grouped);
-    setCurrentOrders(grouped[activeTab]);
-  }, [orderData, activeTab]);
+    setCurrentOrders(transformed);
+  }, [orderData]);
 
   // Apply Filters
   const applyFilters = (orders: Order[]) => {
@@ -751,11 +764,13 @@ const OrderPage = () => {
       });
   };
 
-  // Update filtered orders when tab/filter changes
-  useEffect(() => {
-    const filtered = applyFilters(ordersByStatus[activeTab] || []);
-    setCurrentOrders(filtered);
-  }, [activeTab, ordersByStatus, searchValue, startDate, endDate]);
+  const filteredOrders = applyFilters(currentOrders);
+
+  // Reset to page 1 when tab changes
+  const handleTabChange = (newTab: OrderStatus) => {
+    setActiveTab(newTab);
+    setCurrentPage(1);
+  };
 
   // Handle Status Change
   const handleStatusChange = async (
@@ -805,7 +820,7 @@ const OrderPage = () => {
     }
 
     const currentStatus = Object.keys(ordersByStatus).find((status) =>
-      ordersByStatus[status as OrderStatus].some((o) => o.order_id === orderId)
+      ordersByStatus[status as OrderStatus].some((o) => o._id === orderId)
     ) as OrderStatus;
 
     if (!currentStatus || newStatus === currentStatus) return;
@@ -814,7 +829,7 @@ const OrderPage = () => {
       await updateOrderStatus({ orderId, status: newStatus }).unwrap();
 
       const order = ordersByStatus[currentStatus].find(
-        (o) => o.order_id === orderId
+        (o) => o._id === orderId
       );
       if (!order) return;
 
@@ -823,7 +838,7 @@ const OrderPage = () => {
       setOrdersByStatus((prev) => ({
         ...prev,
         [currentStatus]: prev[currentStatus].filter(
-          (o) => o.order_id !== orderId
+          (o) => o._id !== orderId
         ),
         [newStatus]: [updatedOrder, ...prev[newStatus]],
       }));
@@ -875,20 +890,20 @@ const OrderPage = () => {
           
           const currentStatus = Object.keys(ordersByStatus).find((status) =>
             ordersByStatus[status as OrderStatus].some(
-              (o) => o.order_id === pendingStatusUpdate.orderId
+              (o) => o._id === pendingStatusUpdate.orderId
             )
           ) as OrderStatus;
 
           if (currentStatus) {
             const updatedOrder = ordersByStatus[currentStatus].find(
-              (o) => o.order_id === pendingStatusUpdate.orderId
+              (o) => o._id === pendingStatusUpdate.orderId
             );
             if (updatedOrder) {
               const newOrder = { ...updatedOrder, status: pendingStatusUpdate.newStatus as OrderStatus };
               setOrdersByStatus((prev) => ({
                 ...prev,
                 [currentStatus]: prev[currentStatus].filter(
-                  (o) => o.order_id !== pendingStatusUpdate.orderId
+                  (o) => o._id !== pendingStatusUpdate.orderId
                 ),
                 [pendingStatusUpdate.newStatus]: [newOrder, ...prev[pendingStatusUpdate.newStatus as OrderStatus]],
               }));
@@ -1014,20 +1029,25 @@ const OrderPage = () => {
         </div>
       </div>
 
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12 bg-white rounded-lg">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+      <>
       {/* Tabs */}
       <Tabs.Root
         value={activeTab}
-        onValueChange={(val) => setActiveTab(val as OrderStatus)}
+        onValueChange={(val) => handleTabChange(val as OrderStatus)}
       >
         <Tabs.List className="flex overflow-x-auto">
           {ORDER_STATUSES.map((status) => (
             <Tabs.Trigger
               key={status}
               value={status}
-              className="flex-1 h-[45px] px-4 bg-white text-sm text-center hover:text-violet11 data-[state=active]:text-violet11 data-[state=active]:border-b-2 data-[state=active]:border-violet-500"
+              className="flex-1 h-[45px] px-4 bg-white text-sm text-center hover:text-blue-600 data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-500"
             >
-              {formatStatus(status)} (
-              {applyFilters(ordersByStatus[status] || []).length})
+              {formatStatus(status)} ({statusCounts[status]})
             </Tabs.Trigger>
           ))}
         </Tabs.List>
@@ -1053,15 +1073,15 @@ const OrderPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {currentOrders.map((item, index) => (
+                  {filteredOrders.map((item, index) => (
                     <TableRow 
                       key={`${item.order_id}-${index}`}
                       className="cursor-pointer hover:bg-gray-50"
                       onClick={() =>
                         setExpandedOrder(
-                          expandedOrder === item.order_id
+                          expandedOrder === item._id
                             ? null
-                            : item.order_id
+                            : item._id
                         )
                       }
                     >
@@ -1070,13 +1090,13 @@ const OrderPage = () => {
                           className="rounded-full border p-1 text-gray-500"
                           onClick={() =>
                             setExpandedOrder(
-                              expandedOrder === item.order_id
+                              expandedOrder === item._id
                                 ? null
-                                : item.order_id
+                                : item._id
                             )
                           }
                         >
-                          {expandedOrder === item.order_id ? (
+                          {expandedOrder === item._id ? (
                             <CircleChevronUp />
                           ) : (
                             <CircleChevronDown />
@@ -1117,7 +1137,7 @@ const OrderPage = () => {
                                   key={statusOption}
                                   onSelect={() =>
                                     handleStatusChange(
-                                      item.order_id,
+                                      item._id,
                                       statusOption
                                     )
                                   }
@@ -1127,11 +1147,11 @@ const OrderPage = () => {
                               ))}
                             </DropdownMenuContent>
                           </DropdownMenu>
-                          {ordersWithCourier.has(item.order_id) && (
+                          {ordersWithCourier.has(item._id) && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleTrackOrder(item.order_id);
+                                handleTrackOrder(item._id);
                               }}
                               className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 transition-colors"
                               title="Track order"
@@ -1179,7 +1199,7 @@ const OrderPage = () => {
                 <div>
                   <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
                     <h2 className="text-xl font-semibold">
-                      Order <span className="font-bold">{rawOrder._id}</span>
+                      Order <span className="font-bold">{rawOrder.orderId || rawOrder._id}</span>
                     </h2>
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium text-gray-600">Status:</span>
@@ -1222,7 +1242,7 @@ const OrderPage = () => {
                               <div class="receipt-header">
                                 <h1>BDM BAZAR</h1>
                                 <p>Order Management Receipt</p>
-                                <p>Order ID: ${rawOrder._id}</p>
+                                <p>Order ID: ${rawOrder.orderId || rawOrder._id}</p>
                                 <p>Date: ${new Date(rawOrder.createdAt).toLocaleString()}</p>
                               </div>
                               
@@ -1403,6 +1423,103 @@ const OrderPage = () => {
                 </div>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      </>
+      )}
+
+      {/* Pagination */}
+      {meta && meta.totalPage > 1 && (
+        <div className="mt-4 px-5 py-3 bg-white rounded-lg">
+          <div className="flex items-center justify-center gap-4">
+            <div className="text-sm text-gray-600">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, meta.total)} of {meta.total} orders
+            </div>
+            <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+            >
+              Previous
+            </button>
+            <div className="flex gap-1">
+              {(() => {
+                const pages = [];
+                const totalPages = meta.totalPage;
+                
+                // Always show first page
+                pages.push(
+                  <button
+                    key={1}
+                    onClick={() => setCurrentPage(1)}
+                    className={`px-3 py-1 rounded border ${
+                      currentPage === 1
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'hover:bg-gray-100'
+                    }`}
+                  >
+                    1
+                  </button>
+                );
+                
+                // Show ellipsis if current page is far from start
+                if (currentPage > 3) {
+                  pages.push(<span key="start-ellipsis" className="px-2">...</span>);
+                }
+                
+                // Show pages around current page
+                for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+                  pages.push(
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i)}
+                      className={`px-3 py-1 rounded border ${
+                        currentPage === i
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  );
+                }
+                
+                // Show ellipsis if current page is far from end
+                if (currentPage < totalPages - 2) {
+                  pages.push(<span key="end-ellipsis" className="px-2">...</span>);
+                }
+                
+                // Always show last page (if more than 1 page)
+                if (totalPages > 1) {
+                  pages.push(
+                    <button
+                      key={totalPages}
+                      onClick={() => setCurrentPage(totalPages)}
+                      className={`px-3 py-1 rounded border ${
+                        currentPage === totalPages
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      {totalPages}
+                    </button>
+                  );
+                }
+                
+                return pages;
+              })()}
+            </div>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(meta.totalPage, prev + 1))}
+              disabled={currentPage === meta.totalPage}
+              className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+            >
+              Next
+            </button>
+            </div>
           </div>
         </div>
       )}

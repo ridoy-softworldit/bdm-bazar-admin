@@ -34,6 +34,7 @@ export interface CustomerInfo {
 }
 
 export interface Order {
+  orderId: string;
   _id: string;
   customerInfo: CustomerInfo;
   orderInfo: OrderInfo[];

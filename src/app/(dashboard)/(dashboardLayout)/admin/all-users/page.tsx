@@ -190,14 +190,31 @@ import { toast } from "sonner";
 import {
   useGetAllUsersQuery,
   useUpdateUserMutation,
+  useGetUserDetailsQuery,
 } from "@/redux/featured/user/userApi";
 
 
 const AllUsersPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [orderPage, setOrderPage] = useState(1);
+  const [orderLimit] = useState(10);
 
-  const { data: users = [], isLoading, refetch } = useGetAllUsersQuery();
+  const { data: userResponse, isLoading, refetch } = useGetAllUsersQuery({
+    page: currentPage,
+    limit: itemsPerPage,
+  });
+  const users = userResponse?.data || [];
+  const meta = userResponse?.meta;
+  
+  const { data: userDetails } = useGetUserDetailsQuery(
+    { userId: selectedUserId!, page: orderPage, limit: orderLimit },
+    { skip: !selectedUserId }
+  );
 
   const [updateUserStatus, { isLoading: updating }] = useUpdateUserMutation();
 
@@ -213,7 +230,7 @@ const AllUsersPage = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const totalUsers = users.length;
+  const totalUsers = meta?.total || 0;
   const activeUsers = users.filter((u) => u.status === "active").length;
   const newThisMonth = users.length;
 
@@ -304,6 +321,7 @@ const AllUsersPage = () => {
                 <TableCell className="py-4 text-center">
                   {user.createdAt ? format(new Date(user.createdAt), "MMM dd, yyyy") : "—"}
                 </TableCell>
+                <TableCell className="py-4 text-center">0</TableCell>
                 <TableCell className="py-4 text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -312,6 +330,15 @@ const AllUsersPage = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedUserId(user._id!);
+                          setOrderPage(1);
+                          setShowDetailsModal(true);
+                        }}
+                      >
+                        View Details
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() =>
                           user._id && user.email && user.status
@@ -335,6 +362,217 @@ const AllUsersPage = () => {
         </Table>
       </div>
 
+      {/* Pagination */}
+      {meta && meta.totalPage > 1 && (
+        <div className="mt-4 px-5 py-3 bg-white rounded-lg">
+          <div className="flex items-center justify-center gap-4">
+            <div className="text-sm text-gray-600">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, meta.total)} of {meta.total} users
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Previous
+              </button>
+              <div className="flex gap-1">
+                {(() => {
+                  const pages = [];
+                  const totalPages = meta.totalPage;
+                  
+                  pages.push(
+                    <button
+                      key={1}
+                      onClick={() => setCurrentPage(1)}
+                      className={`px-3 py-1 rounded border ${
+                        currentPage === 1
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      1
+                    </button>
+                  );
+                  
+                  if (currentPage > 3) {
+                    pages.push(<span key="start-ellipsis" className="px-2">...</span>);
+                  }
+                  
+                  for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+                    pages.push(
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(i)}
+                        className={`px-3 py-1 rounded border ${
+                          currentPage === i
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        {i}
+                      </button>
+                    );
+                  }
+                  
+                  if (currentPage < totalPages - 2) {
+                    pages.push(<span key="end-ellipsis" className="px-2">...</span>);
+                  }
+                  
+                  if (totalPages > 1) {
+                    pages.push(
+                      <button
+                        key={totalPages}
+                        onClick={() => setCurrentPage(totalPages)}
+                        className={`px-3 py-1 rounded border ${
+                          currentPage === totalPages
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        {totalPages}
+                      </button>
+                    );
+                  }
+                  
+                  return pages;
+                })()}
+              </div>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(meta.totalPage, prev + 1))}
+                disabled={currentPage === meta.totalPage}
+                className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Details Modal */}
+      {showDetailsModal && userDetails && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col">
+            {/* Fixed Header with Close Button */}
+            <div className="p-6 border-b flex justify-between items-center flex-shrink-0">
+              <h2 className="text-2xl font-bold">User Details</h2>
+              <button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setSelectedUserId(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold w-8 h-8 flex items-center justify-center"
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* Scrollable Content */}
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
+              {/* User Info */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3">User Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Name</p>
+                    <p className="font-medium">{userDetails.user.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="font-medium">{userDetails.user.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Contact No</p>
+                    <p className="font-medium">{userDetails.user.contactNo || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Role</p>
+                    <p className="font-medium capitalize">{userDetails.user.role}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Status</p>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      userDetails.user.status === "active"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-300 text-gray-700"
+                    }`}>
+                      {userDetails.user.status}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Wallet Points</p>
+                    <p className="font-medium">{userDetails.user.walletPoint || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Joined</p>
+                    <p className="font-medium">{format(new Date(userDetails.user.createdAt!), "MMM dd, yyyy")}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Orders */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Orders ({userDetails.meta?.total || userDetails.orders.length})</h3>
+                <div className="space-y-3">
+                  {userDetails.orders.map((order: any) => (
+                    <div key={order._id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="font-medium">Order #{order.orderId}</p>
+                          <p className="text-sm text-gray-600">{format(new Date(order.createdAt), "MMM dd, yyyy")}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">৳{order.totalAmount}</p>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            order.orderInfo[0]?.status === "completed"
+                              ? "bg-green-100 text-green-700"
+                              : order.orderInfo[0]?.status === "pending"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-blue-100 text-blue-700"
+                          }`}>
+                            {order.orderInfo[0]?.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {order.orderInfo.length} item(s) • {order.paymentInfo}
+                      </div>
+                    </div>
+                  ))}
+                  {userDetails.orders.length === 0 && (
+                    <p className="text-center text-gray-500 py-4">No orders found</p>
+                  )}
+                </div>
+                
+                {/* Orders Pagination */}
+                {userDetails.meta && userDetails.meta.totalPage > 1 && (
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => setOrderPage(prev => Math.max(1, prev - 1))}
+                      disabled={orderPage === 1}
+                      className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-sm text-gray-600">
+                      Page {orderPage} of {userDetails.meta.totalPage}
+                    </span>
+                    <button
+                      onClick={() => setOrderPage(prev => Math.min(userDetails.meta!.totalPage, prev + 1))}
+                      disabled={orderPage === userDetails.meta.totalPage}
+                      className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
