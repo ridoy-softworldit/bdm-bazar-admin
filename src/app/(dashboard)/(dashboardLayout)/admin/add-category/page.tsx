@@ -237,12 +237,14 @@ const AddCategory = () => {
       submitFormData.append("details", formData.details);
       submitFormData.append("iconName", formData.icon.name);
 
-      // Files - MUST be appended with exact field names
+      // Files
       if (imageFile) {
         submitFormData.append("imageFile", imageFile);
+        submitFormData.append("image", "uploading");
       }
       if (bannerImgFile) {
         submitFormData.append("bannerImgFile", bannerImgFile);
+        submitFormData.append("bannerImg", "uploading");
       }
       if (iconFile) {
         submitFormData.append("iconFile", iconFile);

@@ -73,6 +73,9 @@ const FileUploadCard = ({
 
   // Function to determine if the URL is a local blob URL (for the current session)
   const isLocalUrl = currentUrl.startsWith("blob:");
+  
+  // Validate URL
+  const isValidUrl = currentUrl && currentUrl.trim() && (currentUrl.startsWith('http') || currentUrl.startsWith('blob:') || currentUrl.startsWith('/'));
 
   return (
     <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
@@ -80,7 +83,7 @@ const FileUploadCard = ({
         {label}
       </label>
 
-      {currentUrl ? (
+      {isValidUrl ? (
         <div className="relative mb-3 group">
           <Image
             src={currentUrl}

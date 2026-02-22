@@ -289,7 +289,7 @@ const AllUsersPage = () => {
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-center">Join Date</TableHead>
               <TableHead className="text-center">Orders</TableHead>
-              <TableHead />
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -321,40 +321,46 @@ const AllUsersPage = () => {
                 <TableCell className="py-4 text-center">
                   {user.createdAt ? format(new Date(user.createdAt), "MMM dd, yyyy") : "—"}
                 </TableCell>
-                <TableCell className="py-4 text-center">0</TableCell>
-                <TableCell className="py-4 text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedUserId(user._id!);
-                          setOrderPage(1);
-                          setShowDetailsModal(true);
-                        }}
-                      >
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() =>
-                          user._id && user.email && user.status
-                            ? handleToggleStatus(user._id, user.email, user.status)
-                            : undefined
-                        }
-                        disabled={updating}
-                        className={`${
-                          user.status === "active" ? "text-gray-700" : "text-green-600"
-                        }`}
-                      >
-                        {user.status === "active" ? "Set Inactive" : "Activate User"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                <TableCell className="py-4 text-center">
+                  <span className="font-medium">0</span>
+                </TableCell>
+                <TableCell className="py-4 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      onClick={() => {
+                        setSelectedUserId(user._id!);
+                        setOrderPage(1);
+                        setShowDetailsModal(true);
+                      }}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      View Details
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() =>
+                            user._id && user.email && user.status
+                              ? handleToggleStatus(user._id, user.email, user.status)
+                              : undefined
+                          }
+                          disabled={updating}
+                          className={`${
+                            user.status === "active" ? "text-gray-700" : "text-green-600"
+                          }`}
+                        >
+                          {user.status === "active" ? "Set Inactive" : "Activate User"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
