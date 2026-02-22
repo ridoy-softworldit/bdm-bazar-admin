@@ -627,7 +627,7 @@ const OrderPage = () => {
   const [itemsPerPage] = useState(10);
   const [activeTab, setActiveTab] = useState<OrderStatus>("pending");
   
-  const { data: orderResponse, isLoading } = useGetAllOrdersQuery({ 
+  const { data: orderResponse, isLoading, refetch } = useGetAllOrdersQuery({ 
     page: currentPage, 
     limit: itemsPerPage,
     status: activeTab
@@ -636,12 +636,12 @@ const OrderPage = () => {
   const meta = orderResponse?.meta;
   
   // Fetch counts for all statuses
-  const { data: pendingCount } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'pending' });
-  const { data: processingCount } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'processing' });
-  const { data: atLocalCount } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'at-local-facility' });
-  const { data: outForDeliveryCount } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'out-for-delivery' });
-  const { data: completedCount } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'completed' });
-  const { data: cancelledCount } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'cancelled' });
+  const { data: pendingCount, refetch: refetchPending } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'pending' });
+  const { data: processingCount, refetch: refetchProcessing } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'processing' });
+  const { data: atLocalCount, refetch: refetchAtLocal } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'at-local-facility' });
+  const { data: outForDeliveryCount, refetch: refetchOutForDelivery } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'out-for-delivery' });
+  const { data: completedCount, refetch: refetchCompleted } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'completed' });
+  const { data: cancelledCount, refetch: refetchCancelled } = useGetAllOrdersQuery({ page: 1, limit: 1, status: 'cancelled' });
   
   const statusCounts: Record<OrderStatus, number> = {
     'pending': pendingCount?.meta?.total || 0,
@@ -708,10 +708,7 @@ const OrderPage = () => {
 
   // Transform Orders
   useEffect(() => {
-    if (!orderData || orderData.length === 0) {
-      setCurrentOrders([]);
-      return;
-    }
+    if (!orderData || orderData.length === 0) return;
 
     const transformOrder = (raw: any): Order => ({
       _id: raw._id,
@@ -819,34 +816,27 @@ const OrderPage = () => {
       }
     }
 
-    const currentStatus = Object.keys(ordersByStatus).find((status) =>
-      ordersByStatus[status as OrderStatus].some((o) => o._id === orderId)
-    ) as OrderStatus;
+    // Find the order in currentOrders instead of ordersByStatus
+    const order = currentOrders.find((o) => o._id === orderId);
+    if (!order) return;
 
-    if (!currentStatus || newStatus === currentStatus) return;
+    const currentStatus = order.status;
+    if (newStatus === currentStatus) return;
 
     try {
       await updateOrderStatus({ orderId, status: newStatus }).unwrap();
-
-      const order = ordersByStatus[currentStatus].find(
-        (o) => o._id === orderId
-      );
-      if (!order) return;
-
-      const updatedOrder = { ...order, status: newStatus };
-
-      setOrdersByStatus((prev) => ({
-        ...prev,
-        [currentStatus]: prev[currentStatus].filter(
-          (o) => o._id !== orderId
-        ),
-        [newStatus]: [updatedOrder, ...prev[newStatus]],
-      }));
-
-      setActiveTab(newStatus);
+      toast.success('Order status updated successfully');
       setExpandedOrder(null);
+      // Refetch all data
+      refetch();
+      refetchPending();
+      refetchProcessing();
+      refetchAtLocal();
+      refetchOutForDelivery();
+      refetchCompleted();
+      refetchCancelled();
     } catch {
-      alert("Failed to update status. Please try again.");
+      toast.error("Failed to update status. Please try again.");
     }
   };
 
@@ -888,27 +878,6 @@ const OrderPage = () => {
             status: pendingStatusUpdate.newStatus as OrderStatus
           }).unwrap();
           
-          const currentStatus = Object.keys(ordersByStatus).find((status) =>
-            ordersByStatus[status as OrderStatus].some(
-              (o) => o._id === pendingStatusUpdate.orderId
-            )
-          ) as OrderStatus;
-
-          if (currentStatus) {
-            const updatedOrder = ordersByStatus[currentStatus].find(
-              (o) => o._id === pendingStatusUpdate.orderId
-            );
-            if (updatedOrder) {
-              const newOrder = { ...updatedOrder, status: pendingStatusUpdate.newStatus as OrderStatus };
-              setOrdersByStatus((prev) => ({
-                ...prev,
-                [currentStatus]: prev[currentStatus].filter(
-                  (o) => o._id !== pendingStatusUpdate.orderId
-                ),
-                [pendingStatusUpdate.newStatus]: [newOrder, ...prev[pendingStatusUpdate.newStatus as OrderStatus]],
-              }));
-            }
-          }
           toast.success(`Order created! Tracking: ${trackingCode}`);
         } catch (statusError) {
           toast.success(`Order created! Tracking: ${trackingCode}`);
@@ -916,7 +885,17 @@ const OrderPage = () => {
       } else {
         toast.success(`Order created! Tracking: ${trackingCode}`);
       }
+      
+      // Close modals and refetch data
       handleCloseCourierModal();
+      setExpandedOrder(null);
+      refetch();
+      refetchPending();
+      refetchProcessing();
+      refetchAtLocal();
+      refetchOutForDelivery();
+      refetchCompleted();
+      refetchCancelled();
     } catch (err) {
       const error = err as { data?: { message?: string }; message?: string };
       setCourierResult({ success: false, error: error?.data?.message || error?.message || "Failed" });
