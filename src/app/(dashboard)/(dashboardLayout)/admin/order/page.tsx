@@ -810,7 +810,9 @@ const OrderPage = () => {
           invoice: rawOrder._id,
           ...commonData,
           cod_amount: rawOrder.totalAmount || 0,
-          note: itemDescription
+          note: itemDescription,
+          recipient_email: rawOrder.customerInfo.email || '',
+          delivery_type: 0
         });
         
         setPathaoForm({

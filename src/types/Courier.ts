@@ -10,6 +10,7 @@ export interface SteadfastForm {
   alternative_phone?: string;
   recipient_email?: string;
   item_description?: string;
+  total_lot?: number;
   delivery_type?: number;
 }
 

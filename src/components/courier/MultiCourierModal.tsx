@@ -226,6 +226,21 @@ export default function MultiCourierModal({
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Alternative Phone</label>
+                    <input
+                      type="tel"
+                      value={steadfastForm.alternative_phone || ''}
+                      onChange={(e) => {
+                        let phone = e.target.value.replace(/\D/g, '');
+                        if (phone.startsWith('88')) phone = phone.substring(2);
+                        if (phone.length > 0 && !phone.startsWith('0')) phone = '0' + phone;
+                        handleSteadfastChange('alternative_phone', phone);
+                      }}
+                      className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="01712345678"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">COD Amount *</label>
                     <input
                       type="number"
@@ -233,6 +248,39 @@ export default function MultiCourierModal({
                       onChange={(e) => handleSteadfastChange('cod_amount', Math.max(0, Number(e.target.value)))}
                       className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Lot</label>
+                    <input
+                      type="number"
+                      value={steadfastForm.total_lot || ''}
+                      onChange={(e) => handleSteadfastChange('total_lot', Math.max(0, Number(e.target.value)))}
+                      className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      min="0"
+                      placeholder="Number of lots"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Type</label>
+                    <select
+                      value={steadfastForm.delivery_type ?? ''}
+                      onChange={(e) => handleSteadfastChange('delivery_type', e.target.value ? Number(e.target.value) : '')}
+                      className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select delivery type</option>
+                      <option value={0}>Home Delivery</option>
+                      <option value={1}>Point Delivery/Hub Pick Up</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Email</label>
+                    <input
+                      type="email"
+                      value={steadfastForm.recipient_email || ''}
+                      onChange={(e) => handleSteadfastChange('recipient_email', e.target.value)}
+                      className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="email@example.com"
                     />
                   </div>
                 </div>
@@ -244,6 +292,16 @@ export default function MultiCourierModal({
                     className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     rows={2}
                     placeholder="House 123, Road 456, Dhaka"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Item Description</label>
+                  <textarea
+                    value={steadfastForm.item_description || ''}
+                    onChange={(e) => handleSteadfastChange('item_description', e.target.value)}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={2}
+                    placeholder="Product details"
                   />
                 </div>
                 <div>
