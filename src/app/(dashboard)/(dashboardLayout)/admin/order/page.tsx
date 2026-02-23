@@ -781,19 +781,36 @@ const OrderPage = () => {
         setSelectedOrderForCourier(rawOrder);
         setPendingStatusUpdate({ orderId, newStatus });
         
+        // Get product names from order items
+        const itemDescriptions = await Promise.all(
+          (rawOrder.orderInfo || []).map(async (item: any) => {
+            if (typeof item.productInfo === 'string') {
+              try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_API}/products/${item.productInfo}`);
+                const data = await response.json();
+                return data?.data?.description?.name || 'Product';
+              } catch {
+                return 'Product';
+              }
+            }
+            return item.productInfo?.description?.name || 'Product';
+          })
+        );
+        const itemDescription = itemDescriptions.join(', ');
+        
         // Pre-fill forms with order data
         const commonData = {
           recipient_name: `${rawOrder.customerInfo.firstName} ${rawOrder.customerInfo.lastName}`,
           recipient_phone: (rawOrder.customerInfo.phone || "").replace(/^\+?88/, '').replace(/^0?/, '0'),
           recipient_address: `${rawOrder.customerInfo.address}, ${rawOrder.customerInfo.city}` || "",
-          item_description: "Order items",
+          item_description: itemDescription,
         };
         
         setSteadfastForm({
           invoice: rawOrder._id,
           ...commonData,
           cod_amount: rawOrder.totalAmount || 0,
-          note: "Order items"
+          note: itemDescription
         });
         
         setPathaoForm({
@@ -803,7 +820,7 @@ const OrderPage = () => {
           delivery_type: 48,
           item_type: 2,
           special_instruction: '',
-          item_quantity: 1,
+          item_quantity: rawOrder.orderInfo?.length || 1,
           item_weight: '0.5',
           amount_to_collect: rawOrder.totalAmount || 0
         });

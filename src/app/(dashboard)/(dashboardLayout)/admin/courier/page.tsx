@@ -115,9 +115,9 @@ export default function CourierManagement() {
 
   const tabs = [
     ...(selectedCourier === 'steadfast' ? [{ id: 'balance', label: '💰 Balance' }] : []),
-    ...(selectedCourier === 'pathao' ? [{ id: 'setup', label: '🏪 Store Setup' }] : []),
     { id: 'order', label: '📦 Create Order' },
     { id: 'tracking', label: '📍 Tracking' },
+    ...(selectedCourier === 'pathao' ? [{ id: 'setup', label: '🏪 Store Setup' }] : []),
   ];
 
   const loadCities = async () => {
@@ -177,6 +177,12 @@ export default function CourierManagement() {
       refetchStores();
     }
   }, [selectedCourier]);
+
+  React.useEffect(() => {
+    if (Array.isArray(stores) && stores.length > 0 && pathaoForm.store_id === 0) {
+      setPathaoForm(prev => ({ ...prev, store_id: stores[0].store_id }));
+    }
+  }, [stores]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -292,12 +298,18 @@ export default function CourierManagement() {
                       ))}
                     </select>
                   </div>
+                  <div><label className="block text-sm font-medium mb-1">Merchant Order ID</label><input type="text" value={pathaoForm.merchant_order_id} onChange={(e) => setPathaoForm({...pathaoForm, merchant_order_id: e.target.value})} className="w-full border rounded px-3 py-2" /></div>
                   <div><label className="block text-sm font-medium mb-1">Recipient Name *</label><input type="text" value={pathaoForm.recipient_name} onChange={(e) => setPathaoForm({...pathaoForm, recipient_name: e.target.value})} className="w-full border rounded px-3 py-2" /></div>
                   <div><label className="block text-sm font-medium mb-1">Phone *</label><input type="text" value={pathaoForm.recipient_phone} onChange={(e) => setPathaoForm({...pathaoForm, recipient_phone: e.target.value})} className="w-full border rounded px-3 py-2" /></div>
+                  <div><label className="block text-sm font-medium mb-1">Delivery Type *</label><select value={pathaoForm.delivery_type} onChange={(e) => setPathaoForm({...pathaoForm, delivery_type: Number(e.target.value)})} className="w-full border rounded px-3 py-2"><option value={48}>Normal (48h)</option><option value={12}>On Demand (12h)</option></select></div>
+                  <div><label className="block text-sm font-medium mb-1">Item Type *</label><select value={pathaoForm.item_type} onChange={(e) => setPathaoForm({...pathaoForm, item_type: Number(e.target.value)})} className="w-full border rounded px-3 py-2"><option value={1}>Document</option><option value={2}>Parcel</option></select></div>
+                  <div><label className="block text-sm font-medium mb-1">Item Quantity *</label><input type="number" value={pathaoForm.item_quantity} onChange={(e) => setPathaoForm({...pathaoForm, item_quantity: Number(e.target.value)})} className="w-full border rounded px-3 py-2" min="1" /></div>
                   <div><label className="block text-sm font-medium mb-1">Weight (kg) *</label><input type="text" value={pathaoForm.item_weight} onChange={(e) => setPathaoForm({...pathaoForm, item_weight: e.target.value})} className="w-full border rounded px-3 py-2" /></div>
                   <div><label className="block text-sm font-medium mb-1">Amount to Collect *</label><input type="number" value={pathaoForm.amount_to_collect} onChange={(e) => setPathaoForm({...pathaoForm, amount_to_collect: Number(e.target.value)})} className="w-full border rounded px-3 py-2" /></div>
                 </div>
                 <div><label className="block text-sm font-medium mb-1">Address *</label><textarea value={pathaoForm.recipient_address} onChange={(e) => setPathaoForm({...pathaoForm, recipient_address: e.target.value})} className="w-full border rounded px-3 py-2" rows={2} /></div>
+                <div><label className="block text-sm font-medium mb-1">Item Description</label><textarea value={pathaoForm.item_description} onChange={(e) => setPathaoForm({...pathaoForm, item_description: e.target.value})} className="w-full border rounded px-3 py-2" rows={2} /></div>
+                <div><label className="block text-sm font-medium mb-1">Special Instruction</label><textarea value={pathaoForm.special_instruction} onChange={(e) => setPathaoForm({...pathaoForm, special_instruction: e.target.value})} className="w-full border rounded px-3 py-2" rows={2} /></div>
                 <button onClick={handleCreateOrder} disabled={pathaoOrderLoading} className="bg-green-600 text-white px-6 py-2 rounded">{pathaoOrderLoading ? 'Creating...' : 'Create Order'}</button>
               </div>
             )}

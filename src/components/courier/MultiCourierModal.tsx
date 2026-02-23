@@ -41,6 +41,12 @@ export default function MultiCourierModal({
   const { data: stores = [] } = useGetStoresQuery();
   
   useEffect(() => {
+    if (stores.length > 0 && pathaoForm.store_id === 0) {
+      onPathaoFormChange({ ...pathaoForm, store_id: stores[0].store_id });
+    }
+  }, [stores, pathaoForm.store_id]);
+  
+  useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
