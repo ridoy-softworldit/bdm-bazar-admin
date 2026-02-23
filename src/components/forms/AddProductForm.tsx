@@ -68,7 +68,7 @@ export default function AddProductForm() {
   const { data: authors, isLoading: isAuthorsLoading } =
     useGetAllAuthorsQuery(undefined);
 
-  const [activeTab, setActiveTab] = useState<"book" | "non-book">("non-book");
+  const [activeTab, setActiveTab] = useState<"book" | "non-book">("book");
   // const { data: shopData, isLoading: isShopDataLoading } =
   //   useGetAllShopsQuery();
 
@@ -290,23 +290,24 @@ export default function AddProductForm() {
 
   return (
     <div>
-      <div className="mb-8 bg-white p-6 rounded-xl shadow-sm border">
-        <div className="flex items-center justify-center">
-          <div className="inline-flex bg-gray-100 rounded-lg p-1">
+      <div className="lg:sticky lg:top-0 lg:z-10 mb-8 bg-gradient-to-r from-blue-50 to-purple-50 py-2 rounded-xl shadow-md border-2 border-blue-200">
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-4">
+          <p className="sm:text-md font-medium text-gray-600">Select Product Type:</p>
+          <div className="inline-flex bg-white rounded-lg p-1 shadow-lg">
             {/* Books */}
             <button
               type="button"
               onClick={() => setActiveTab("book")}
               className={`
-                px-6 py-2.5 font-medium text-sm rounded-md transition-all duration-200 flex items-center gap-2
+                px-6 py-2 font-semibold text-sm rounded-lg transition-all duration-200 flex items-center gap-2
                 ${
                   activeTab === "book"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }
               `}
             >
-              <span className="text-lg">📚</span>
+              <span className="text-2xl">📚</span>
               Books
             </button>
 
@@ -315,15 +316,15 @@ export default function AddProductForm() {
               type="button"
               onClick={() => setActiveTab("non-book")}
               className={`
-                px-6 py-2.5 font-medium text-sm rounded-md transition-all duration-200 flex items-center gap-2
+                px-6 py-2 font-semibold text-sm rounded-lg transition-all duration-200 flex items-center gap-2
                 ${
                   activeTab === "non-book"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg scale-105"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }
               `}
             >
-              <span className="text-lg">📦</span>
+              <span className="text-2xl">📦</span>
               Non-Book
             </button>
           </div>
@@ -941,7 +942,7 @@ export default function AddProductForm() {
                   <Input
                     type="url"
                     id="previewPdf"
-                    placeholder="https://drive.google.com/file/d/FILE_ID/preview"
+                    placeholder="https://drive.google..."
                     value={pdfLink}
                     onChange={(e) => setPdfLink(e.target.value)}
                   />
@@ -963,7 +964,7 @@ export default function AddProductForm() {
                     <FormControl>
                       <Input
                         type="url"
-                        placeholder="https://youtube.com/watch?v=..."
+                        placeholder="https://youtube...."
                         {...field}
                       />
                     </FormControl>
@@ -1185,7 +1186,7 @@ export default function AddProductForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Tags <span className="text-red-500 text-lg">*</span>
+                      Tags
                     </FormLabel>
                     <FormControl>
                       {isTagsLoading ? (
