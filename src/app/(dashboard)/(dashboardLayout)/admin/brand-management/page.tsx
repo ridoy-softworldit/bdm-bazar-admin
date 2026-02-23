@@ -98,13 +98,19 @@ const BrandManagement = () => {
               >
                 {/* Header */}
                 <div className="flex items-center gap-3 p-4 border-b border-gray-100">
-                  <Image
-                    src={brand.icon?.url}
-                    alt={brand.icon?.name}
-                    width={48}
-                    height={48}
-                    className="w-12 h-12 rounded-lg object-contain bg-gray-100 p-1"
-                  />
+                  {brand.icon?.url ? (
+                    <Image
+                      src={brand.icon.url}
+                      alt={brand.icon?.name || "Brand icon"}
+                      width={48}
+                      height={48}
+                      className="w-12 h-12 rounded-lg object-contain bg-gray-100 p-1"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <ImageIcon className="w-6 h-6 text-gray-400" />
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-semibold text-gray-800">
                       {brand.name}
@@ -120,14 +126,16 @@ const BrandManagement = () => {
                 {brand.images?.length > 0 && (
                   <div className="flex gap-2 p-4 overflow-x-auto">
                     {brand.images.map((img, idx) => (
-                      <Image
-                        key={idx}
-                        src={img.image}
-                        alt={`${brand.name}-${img.layout}`}
-                        width={96}
-                        height={96}
-                        className="w-24 h-24 object-cover rounded-md border"
-                      />
+                      img.image ? (
+                        <Image
+                          key={idx}
+                          src={img.image}
+                          alt={`${brand.name}-${img.layout}`}
+                          width={96}
+                          height={96}
+                          className="w-24 h-24 object-cover rounded-md border"
+                        />
+                      ) : null
                     ))}
                   </div>
                 )}
@@ -179,13 +187,19 @@ const BrandManagement = () => {
               {/* Icon */}
               <div className="flex items-center gap-3">
                 <ImageIcon className="text-gray-500 w-4 h-4" />
-                <Image
-                  src={selectedBrand.icon?.url}
-                  alt={selectedBrand.icon?.name}
-                  width={56}
-                  height={56}
-                  className="w-14 h-14 rounded-lg border bg-gray-100 object-contain p-1"
-                />
+                {selectedBrand.icon?.url ? (
+                  <Image
+                    src={selectedBrand.icon.url}
+                    alt={selectedBrand.icon?.name || "Brand icon"}
+                    width={56}
+                    height={56}
+                    className="w-14 h-14 rounded-lg border bg-gray-100 object-contain p-1"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-lg border bg-gray-100 flex items-center justify-center">
+                    <ImageIcon className="w-6 h-6 text-gray-400" />
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-gray-700">
                     Icon Name: {selectedBrand.icon?.name}
@@ -211,14 +225,16 @@ const BrandManagement = () => {
                   <div className="flex flex-wrap gap-3">
                     {selectedBrand.images.map(
                       (img: { image: string }, idx: number) => (
-                        <Image
-                          key={idx}
-                          src={img.image}
-                          alt={`brand-${idx}`}
-                          width={112}
-                          height={112}
-                          className="w-28 h-28 object-cover rounded-lg border"
-                        />
+                        img.image ? (
+                          <Image
+                            key={idx}
+                            src={img.image}
+                            alt={`brand-${idx}`}
+                            width={112}
+                            height={112}
+                            className="w-28 h-28 object-cover rounded-lg border"
+                          />
+                        ) : null
                       )
                     )}
                   </div>
