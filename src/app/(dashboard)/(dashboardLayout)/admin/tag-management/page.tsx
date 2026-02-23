@@ -136,6 +136,19 @@ const TagManagement = () => {
                   className="p-4 hover:shadow-lg transition-all border border-gray-100 rounded-xl flex flex-col justify-between h-full"
                 >
                   <CardContent className="p-0 flex flex-col h-full">
+                    {/* Tag Image */}
+                    {tag.image && (
+                      <div className="relative w-full h-32 mb-3 rounded-lg overflow-hidden">
+                        <Image
+                          src={tag.image}
+                          alt={tag.name}
+                          fill
+                          className="object-cover"
+                          unoptimized={tag.image.startsWith("http")}
+                        />
+                      </div>
+                    )}
+
                     <div className="flex items-start justify-between mb-3">
                       <Badge className="bg-amber-100 text-black text-sm">
                         {tag.name}

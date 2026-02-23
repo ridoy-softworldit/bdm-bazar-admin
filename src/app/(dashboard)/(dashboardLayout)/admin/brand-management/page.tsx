@@ -12,9 +12,11 @@ import {
   X,
   Calendar,
   ImageIcon,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useGetAllbrandsQuery } from "@/redux/featured/brands/brandsApi";
+import { useGetAllbrandsQuery, useDeleteBrandMutation } from "@/redux/featured/brands/brandsApi";
+import Swal from "sweetalert2";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +26,8 @@ import {
 } from "@/components/ui/dialog";
 
 const BrandManagement = () => {
-  const { data: allBrands, isLoading } = useGetAllbrandsQuery();
+  const { data: allBrands, isLoading, refetch } = useGetAllbrandsQuery();
+  const [deleteBrand] = useDeleteBrandMutation();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBrand, setSelectedBrand] = useState<any | null>(null);
@@ -33,17 +36,39 @@ const BrandManagement = () => {
     router.push("/admin/add-brand");
   };
 
+  const handleDelete = async (id: string, name: string) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Delete brand "${name}"? This cannot be undone!`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await deleteBrand(id).unwrap();
+        Swal.fire("Deleted!", "Brand has been deleted.", "success");
+        refetch();
+      } catch (error) {
+        Swal.fire("Error!", "Failed to delete brand.", "error");
+      }
+    }
+  };
+
   // Filter brands
   const filteredBrands = (allBrands || []).filter((brand) =>
     brand.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="space-y-6 py-6 px-4 sm:px-6 md:px-8 bg-gray-50 min-h-screen">
+    <div className="space-y-4 py-4 px-4 sm:px-6 bg-gray-50 min-h-screen">
       {/* Header Button */}
       <div className="flex justify-end">
         <Button
-          className="bg-gray-800 hover:bg-gray-900 text-white shadow-md"
+          className="bg-gray-800 hover:bg-gray-900 text-white"
           onClick={handleClick}
         >
           + Add Brand
@@ -51,9 +76,9 @@ const BrandManagement = () => {
       </div>
 
       {/* Brand Management */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-800">
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-gray-800">
             Brand Management
           </h2>
           <p className="text-gray-500 text-sm">
@@ -62,14 +87,14 @@ const BrandManagement = () => {
         </div>
 
         {/* Search + Filter */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
-              placeholder="Search here..."
+              placeholder="Search brands..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-50 border-gray-200"
+              className="pl-10"
             />
           </div>
           <div className="flex gap-2">
@@ -90,33 +115,32 @@ const BrandManagement = () => {
         ) : filteredBrands.length === 0 ? (
           <p className="text-gray-500">No brands found.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {filteredBrands.map((brand) => (
               <Card
                 key={brand._id}
-                className="overflow-hidden rounded-xl shadow-sm border hover:shadow-lg transition-all"
+                className="overflow-hidden hover:shadow-md transition-shadow"
               >
                 {/* Header */}
-                <div className="flex items-center gap-3 p-4 border-b border-gray-100">
+                <div className="flex items-center gap-2 p-3 bg-gray-50 border-b">
                   {brand.icon?.url ? (
                     <Image
                       src={brand.icon.url}
                       alt={brand.icon?.name || "Brand icon"}
-                      width={48}
-                      height={48}
-                      className="w-12 h-12 rounded-lg object-contain bg-gray-100 p-1"
+                      width={40}
+                      height={40}
+                      className="w-10 h-10 rounded object-contain bg-white p-1"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                      <ImageIcon className="w-6 h-6 text-gray-400" />
+                    <div className="w-10 h-10 rounded bg-white flex items-center justify-center">
+                      <ImageIcon className="w-5 h-5 text-gray-400" />
                     </div>
                   )}
-                  <div>
-                    <h3 className="font-semibold text-gray-800">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-sm text-gray-800 truncate">
                       {brand.name}
                     </h3>
                     <p className="text-xs text-gray-500">
-                      Created:{" "}
                       {new Date(brand.createdAt).toLocaleDateString("en-GB")}
                     </p>
                   </div>
@@ -124,41 +148,52 @@ const BrandManagement = () => {
 
                 {/* Images */}
                 {brand.images?.length > 0 && (
-                  <div className="flex gap-2 p-4 overflow-x-auto">
-                    {brand.images.map((img, idx) => (
+                  <div className="flex gap-1 p-2 overflow-x-auto">
+                    {brand.images.slice(0, 3).map((img, idx) => (
                       img.image ? (
                         <Image
                           key={idx}
                           src={img.image}
-                          alt={`${brand.name}-${img.layout}`}
-                          width={96}
-                          height={96}
-                          className="w-24 h-24 object-cover rounded-md border"
+                          alt={`${brand.name}-${idx}`}
+                          width={60}
+                          height={60}
+                          className="w-16 h-16 object-cover rounded border"
                         />
                       ) : null
                     ))}
+                    {brand.images.length > 3 && (
+                      <div className="w-16 h-16 rounded border bg-gray-100 flex items-center justify-center text-xs text-gray-600">
+                        +{brand.images.length - 3}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Footer */}
-                <CardContent className="flex justify-between items-center p-4 pt-0">
+                <CardContent className="flex gap-1 p-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1"
-                    onClick={() =>
-                      router.push(`/admin/edit-brand/${brand._id}`)
-                    }
+                    className="flex-1 h-8 text-xs"
+                    onClick={() => router.push(`/admin/edit-brand/${brand._id}`)}
                   >
                     Edit
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1"
+                    className="flex-1 h-8 text-xs"
                     onClick={() => setSelectedBrand(brand)}
                   >
                     View
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => handleDelete(brand._id, brand.name)}
+                  >
+                    <Trash2 className="w-3 h-3" />
                   </Button>
                 </CardContent>
               </Card>

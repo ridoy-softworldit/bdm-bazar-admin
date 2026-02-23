@@ -10,6 +10,7 @@ const brandsApi = baseApi.injectEndpoints({
         method: "GET",
       }),
       transformResponse: (response: { data: IBrand[] }) => response.data,
+      providesTags: ["Brand"],
     }),
     getSingleBrands: builder.query<IBrand, string>({
       query: (id) => ({
@@ -17,6 +18,7 @@ const brandsApi = baseApi.injectEndpoints({
         method: "GET",
       }),
       transformResponse: (response: { data: IBrand }) => response.data,
+      providesTags: (result, error, id) => [{ type: "Brand", id }],
     }),
     createBrand: builder.mutation<IBrand, FormData>({
       query: (formData) => ({
@@ -24,7 +26,7 @@ const brandsApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      // transformResponse: (response: { data: IBrand }) => response.data,
+      invalidatesTags: ["Brand"],
     }),
     updateBrand: builder.mutation<IBrand, { id: string; formData: FormData }>({
       query: ({ id, formData }) => ({
@@ -33,6 +35,14 @@ const brandsApi = baseApi.injectEndpoints({
         body: formData,
       }),
       transformResponse: (response: { data: IBrand }) => response.data,
+      invalidatesTags: (result, error, { id }) => ["Brand", { type: "Brand", id }],
+    }),
+    deleteBrand: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/brand/delete-brand/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Brand"],
     }),
   }),
 });
@@ -42,4 +52,5 @@ export const {
   useCreateBrandMutation,
   useGetSingleBrandsQuery,
   useUpdateBrandMutation,
+  useDeleteBrandMutation,
 } = brandsApi;

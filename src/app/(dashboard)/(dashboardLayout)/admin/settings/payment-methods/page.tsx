@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Upload, Loader2, Save } from "lucide-react";
 import toast from "react-hot-toast";
-import { useGetSettingsQuery, useUpdateSettingsMutation, IDeliveryCharge } from "@/redux/featured/settings/settingsApi";
+import { useGetSettingsQuery, useUpdateSettingsMutation, useCreateSettingsMutation, IDeliveryCharge } from "@/redux/featured/settings/settingsApi";
 import DeliveryChargeSettings from "@/components/modules/Dashboard/delivery-settings/DeliveryChargeSettings";
 
 export default function SettingsTab() {
-  const { data, isLoading } = useGetSettingsQuery();
+  const { data, isLoading, error } = useGetSettingsQuery();
   const [updateSettings, { isLoading: updating }] = useUpdateSettingsMutation();
+  const [createSettings] = useCreateSettingsMutation();
 
   const [activeTab, setActiveTab] = useState<"mobileMfs" | "deliveryCharge">("mobileMfs");
 
@@ -77,7 +78,8 @@ export default function SettingsTab() {
         }
       });
 
-      const res = await updateSettings(formData).unwrap();
+      const mutation = !data || error ? createSettings : updateSettings;
+      const res = await mutation(formData).unwrap();
 
       if (res.success) {
         toast.success("Mobile MFS updated successfully!");

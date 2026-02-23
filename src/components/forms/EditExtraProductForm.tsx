@@ -712,9 +712,8 @@ export default function EditExtraProductForm({
                     <SelectContent>
                       <SelectItem value="publish">Publish</SelectItem>
                       <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="low-quantity">Draft</SelectItem>
-                      <SelectItem value="low-quantity">Draft</SelectItem>
-                      <SelectItem value="out-of-stock">Draft</SelectItem>
+                      <SelectItem value="low-quantity">Low Quantity</SelectItem>
+                      <SelectItem value="out-of-stock">Out of Stock</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

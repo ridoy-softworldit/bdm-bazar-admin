@@ -276,11 +276,13 @@ import toast from "react-hot-toast";
 import {
   useGetSettingsQuery,
   useUpdateSettingsMutation,
+  useCreateSettingsMutation,
 } from "@/redux/featured/settings/settingsApi";
 
 export default function GeneralSettings() {
-  const { data: settingsData } = useGetSettingsQuery();
+  const { data: settingsData, error } = useGetSettingsQuery();
   const [updateSettings, { isLoading: isSaving }] = useUpdateSettingsMutation();
+  const [createSettings] = useCreateSettingsMutation();
 
   const [logoPreview, setLogoPreview] = useState(null);
   const [bannerPreviews, setBannerPreviews] = useState([]);
@@ -362,7 +364,8 @@ export default function GeneralSettings() {
       if (logoFile) formData.append("logo", logoFile);
       bannerFiles.forEach((file) => formData.append("sliderImages", file));
 
-      const res = await updateSettings(formData).unwrap();
+      const mutation = !settingsData || error ? createSettings : updateSettings;
+      const res = await mutation(formData).unwrap();
 
       toast.success(res.message || "Settings updated successfully!");
       setSaved(true);

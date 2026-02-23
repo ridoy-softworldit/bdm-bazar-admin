@@ -42,15 +42,16 @@ export default function ViewCategoryPage() {
       </div>
 
       {/* Banner */}
-      {category.bannerImg && (
+      {category.bannerImg && category.bannerImg.trim() && (category.bannerImg.startsWith('/') || category.bannerImg.startsWith('http')) && (
         <div className="relative w-full h-52 rounded-xl overflow-hidden shadow">
           <Image
             src={category.bannerImg}
             alt={`${category.name} banner`}
-            fill // পুরো div টা কভার করবে
+            fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 50vw"
-            priority={false} // যদি হিরো ইমেজ হয় তাহলে true করুন
+            priority={false}
+            unoptimized={category.bannerImg.startsWith("http")}
           />
         </div>
       )}
@@ -65,10 +66,10 @@ export default function ViewCategoryPage() {
                 <Image
                   src={category.icon.url}
                   alt={category.icon.name || `${category.name} icon`}
-                  width={48} // p-2 = 8px → 64 - 16 = 48px
+                  width={48}
                   height={48}
                   className="object-contain"
-                  unoptimized={category.icon.url.startsWith("http")} // external URL হলে
+                  unoptimized={category.icon.url.startsWith("http")}
                 />
               </div>
             )}
@@ -107,7 +108,7 @@ export default function ViewCategoryPage() {
           <div>
             <h4 className="text-lg font-semibold text-gray-700 mb-4">Images</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {category.image && (
+              {category.image && category.image.trim() && (category.image.startsWith('/') || category.image.startsWith('http')) && (
                 <div className="relative w-full h-36 rounded-lg shadow overflow-hidden">
                   <Image
                     src={category.image}
@@ -122,7 +123,7 @@ export default function ViewCategoryPage() {
               )}
 
               {/* Banner Image */}
-              {category.bannerImg && (
+              {category.bannerImg && category.bannerImg.trim() && (category.bannerImg.startsWith('/') || category.bannerImg.startsWith('http')) && (
                 <div className="relative w-full h-36 rounded-lg shadow overflow-hidden">
                   <Image
                     src={category.bannerImg}

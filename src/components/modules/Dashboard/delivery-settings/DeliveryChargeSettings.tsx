@@ -9,12 +9,14 @@ import { Loader2, Save, Truck } from "lucide-react";
 import {
   useGetSettingsQuery,
   useUpdateSettingsMutation,
+  useCreateSettingsMutation,
   IDeliveryCharge,
 } from "@/redux/featured/settings/settingsApi";
 
 export default function DeliveryChargeSettings() {
-  const { data: settingsData, isLoading: isFetching } = useGetSettingsQuery();
+  const { data: settingsData, isLoading: isFetching, error } = useGetSettingsQuery();
   const [updateSettings, { isLoading: isUpdating }] = useUpdateSettingsMutation();
+  const [createSettings, { isLoading: isCreating }] = useCreateSettingsMutation();
 
   const [deliveryCharge, setDeliveryCharge] = useState<IDeliveryCharge>({
     insideDhaka: 60,
@@ -45,7 +47,9 @@ export default function DeliveryChargeSettings() {
       formData.append(`deliveryCharge[insideDhaka]`, deliveryCharge.insideDhaka.toString());
       formData.append(`deliveryCharge[outsideDhaka]`, deliveryCharge.outsideDhaka.toString());
 
-      const result = await updateSettings(formData).unwrap();
+      // If settings don't exist, create them
+      const mutation = !settingsData || error ? createSettings : updateSettings;
+      const result = await mutation(formData).unwrap();
 
       if (result.success) {
         toast.success("Delivery charges updated successfully!");
@@ -113,8 +117,8 @@ export default function DeliveryChargeSettings() {
         </Card>
       </div>
 
-      <Button onClick={handleSubmit} disabled={isUpdating} className="w-full">
-        {isUpdating ? (
+      <Button onClick={handleSubmit} disabled={isUpdating || isCreating} className="w-full">
+        {(isUpdating || isCreating) ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
           <Save className="mr-2 h-4 w-4" />

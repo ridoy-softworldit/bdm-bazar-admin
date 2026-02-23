@@ -6,7 +6,7 @@ const baseURL = process.env.NEXT_PUBLIC_BASE_API;
 const baseQuery = fetchBaseQuery({
   baseUrl: baseURL,
   credentials: "include",
-  prepareHeaders: async (headers, { getState }) => {
+  prepareHeaders: async (headers, { getState, endpoint }) => {
     const token = (getState() as RootState).auth.token;
     
     if (!token) {
@@ -14,11 +14,16 @@ const baseQuery = fetchBaseQuery({
       const session = await getSession();
       if (session?.user?.accessToken) {
         headers.set("authorization", session.user.accessToken as string);
-      } else {
       }
     } else {
       headers.set("authorization", token);
     }
+    
+    // Don't set Content-Type for FormData - let browser handle it
+    if (headers.get('content-type')?.includes('multipart/form-data')) {
+      headers.delete('content-type');
+    }
+    
     return headers;
   },
 });
@@ -37,5 +42,6 @@ export const baseApi = createApi({
     "ParentCategory",
     "Footer",
     "DynamicPage",
+    "Brand",
   ],
 });

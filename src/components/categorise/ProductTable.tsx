@@ -31,7 +31,7 @@ export default function ProductTable({
           <TableRow>
             <TableHead className="w-12 px-2 py-1 text-xs sm:text-sm">
               Check Box
-            </TableHead>{" "}
+            </TableHead>
             <TableHead className="w-12 px-2 py-1 text-xs sm:text-sm">
               No.
             </TableHead>

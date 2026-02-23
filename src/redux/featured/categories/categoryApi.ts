@@ -26,10 +26,6 @@ const categoriesApi = baseApi.injectEndpoints({
         url: "/category/create-category",
         method: "POST",
         body: formData,
-        // Remove Content-Type header to let browser set it with boundary
-        headers: {
-          // Remove any explicit Content-Type header
-        },
       }),
       transformResponse: (response: { data: ICategory }) => response.data,
       invalidatesTags: ["Category"],
@@ -41,7 +37,7 @@ const categoriesApi = baseApi.injectEndpoints({
         updateDetails,
       }: {
         id: string;
-        updateDetails: FormData;
+        updateDetails: FormData | { feautured: boolean };
       }) => ({
         url: `/category/update-category/${id}`,
         method: "PATCH",

@@ -15,6 +15,7 @@ import { FaTrash } from "react-icons/fa";
 import {
   useGetSettingsQuery,
   useUpdateSettingsMutation,
+  useCreateSettingsMutation,
 } from "@/redux/featured/settings/settingsApi";
 
 interface GeneralSettings {
@@ -96,10 +97,10 @@ export default function GeneralSettingsPage() {
   const {
     data: settingsData,
     isLoading: isFetching,
-    refetch,
+    error,
   } = useGetSettingsQuery();
-  const [updateSettings, { isLoading: isUpdating }] =
-    useUpdateSettingsMutation();
+  const [updateSettings, { isLoading: isUpdating }] = useUpdateSettingsMutation();
+  const [createSettings, { isLoading: isCreating }] = useCreateSettingsMutation();
 
   const [settings, setSettings] = useState<GeneralSettings>({
     enableHomepagePopup: false,
@@ -247,7 +248,8 @@ export default function GeneralSettingsPage() {
         settings.contactAndSocial.phone
       );
 
-      const result = await updateSettings(formData).unwrap();
+      const mutation = !settingsData || error ? createSettings : updateSettings;
+      const result = await mutation(formData).unwrap();
 
       if (result.success) {
         toast.success("Settings saved successfully!");
@@ -531,8 +533,8 @@ export default function GeneralSettingsPage() {
 
       </Tabs>
 
-      <Button onClick={handleSubmit} disabled={isUpdating} className="mt-6">
-        {isUpdating ? (
+      <Button onClick={handleSubmit} disabled={isUpdating || isCreating} className="mt-6">
+        {(isUpdating || isCreating) ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
           <Save className="mr-2 h-4 w-4" />

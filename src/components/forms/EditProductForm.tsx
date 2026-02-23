@@ -121,8 +121,10 @@ export default function EditProductForm({
   const authorsIds =
     product?.bookInfo?.specification?.authors?.map((tag: any) => tag._id) || [];
 
-  // brand ids
-  const brandId = product?.productInfo?.brand?._id;
+  // brand ids - handle both string and object
+  const brandId = typeof product?.productInfo?.brand === 'string' 
+    ? product?.productInfo?.brand 
+    : product?.productInfo?.brand?._id;
 
   // const form = useForm<ProductFormValues>({
   const form = useForm({
@@ -157,7 +159,7 @@ export default function EditProductForm({
       productInfo: {
         productTitle: product?.productInfo?.productTitle || "",
         price: product?.productInfo?.price || 0,
-        brand: product?.productInfo?.brand?._id || undefined,
+        brand: brandId || undefined,
         salePrice: product?.productInfo?.salePrice || 0,
         quantity: product?.productInfo?.quantity || 10,
         sku: product?.productInfo?.sku || "",
@@ -762,9 +764,8 @@ export default function EditProductForm({
                     <SelectContent>
                       <SelectItem value="publish">Publish</SelectItem>
                       <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="low-quantity">Draft</SelectItem>
-                      <SelectItem value="low-quantity">Draft</SelectItem>
-                      <SelectItem value="out-of-stock">Draft</SelectItem>
+                      <SelectItem value="low-quantity">Low Quantity</SelectItem>
+                      <SelectItem value="out-of-stock">Out Of Stock</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

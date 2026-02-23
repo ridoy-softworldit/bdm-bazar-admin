@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Icon,
+  Star,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ICategory } from "@/types/Category";
@@ -24,6 +25,7 @@ import {
 import {
   useDeleteCategoryMutation,
   useGetAllCategoriesQuery,
+  useUpdateCategoryMutation,
 } from "@/redux/featured/categories/categoryApi";
 import { IconBase } from "react-icons/lib";
 import Link from "next/link";
@@ -37,6 +39,7 @@ export default function CategoryManagement() {
 
   const categories = useAppSelector(selectCategories);
   const [deleteCategory] = useDeleteCategoryMutation();
+  const [updateCategory] = useUpdateCategoryMutation();
 
   useEffect(() => {
     if (allCategories) {
@@ -107,6 +110,22 @@ export default function CategoryManagement() {
       } catch (error) {
         Swal.fire("Error!", "Failed to delete the category.", "error");
       }
+    }
+  };
+
+  const toggleFeatured = async (id: string, currentStatus: boolean) => {
+    try {
+      await updateCategory({
+        id,
+        updateDetails: { feautured: !currentStatus },
+      }).unwrap();
+      Swal.fire(
+        "Updated!",
+        `Category ${!currentStatus ? "marked as" : "removed from"} featured.`,
+        "success"
+      );
+    } catch (error) {
+      Swal.fire("Error!", "Failed to update category.", "error");
     }
   };
 
@@ -226,11 +245,12 @@ export default function CategoryManagement() {
                 <th className="text-left py-3 px-4 font-medium text-gray-600">
                   Category
                 </th>
-
+                <th className="text-left py-3 px-4 font-medium text-gray-600">
+                  Featured
+                </th>
                 <th className="text-left py-3 px-4 font-medium text-gray-600">
                   Subcategories
                 </th>
-
                 <th className="text-left py-3 px-4 font-medium text-gray-600">
                   Description
                 </th>
@@ -265,6 +285,23 @@ export default function CategoryManagement() {
                         <div className="text-blue-600"></div>
                         <span className="font-medium">{category.name}</span>
                       </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <button
+                        onClick={() =>
+                          toggleFeatured(category._id, category.feautured || false)
+                        }
+                        className={`p-2 rounded-full transition ${
+                          category.feautured
+                            ? "bg-yellow-100 text-yellow-600"
+                            : "bg-gray-100 text-gray-400"
+                        }`}
+                      >
+                        <Star
+                          className="w-5 h-5"
+                          fill={category.feautured ? "currentColor" : "none"}
+                        />
+                      </button>
                     </td>
 
                     {/* <td className="py-4 px-4">{category?.subCategories}</td>

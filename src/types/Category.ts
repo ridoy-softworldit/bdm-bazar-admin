@@ -13,6 +13,7 @@ export interface ICategory {
   name: string;
   slug: string;
   details: string;
+  feautured?: boolean;
   icon: {
     name: string;
     url: string;
