@@ -273,7 +273,7 @@ export default function SimpleMenuForm({ editingData, onSuccess, onCancel }: Sim
                 id="menuOrder"
                 type="number"
                 value={menuOrder}
-                onChange={(e) => setMenuOrder(parseInt(e.target.value))}
+                onChange={(e) => setMenuOrder(parseInt(e.target.value) || 1)}
                 min="1"
               />
             </div>
