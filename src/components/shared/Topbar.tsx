@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Menu, MoreVertical, User, Search, Settings } from "lucide-react";
+import { Bell, Menu, MoreVertical, User, Search, Settings, RotateCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { RiBarChartHorizontalLine, RiMenuLine } from "react-icons/ri";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -48,19 +48,19 @@ export function TopNavbar({ isSidebarOpen, toggleSidebar }: TopNavbarProps) {
     await signOut({ callbackUrl: "/auth/login" });
   };
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3 md:px-6 lg:px-8 xl:px-10 2xl:px-12 bg-white sticky top-0 z-30 border-b border-gray-200 shadow-sm">
+    <div className="flex items-center justify-between gap-4 pr-4 py-3 md:pr-6 lg:pr-8 xl:pr-10 2xl:pr-12 pl-1 bg-white sticky top-0 z-30 border-b border-gray-200 shadow-sm">
       {/* Left side */}
       <div className="flex items-center gap-3">
         {/* Mobile Menu Button */}
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="md:hidden hover:bg-gray-100 rounded-lg"
+              className="md:hidden text-gray-100 hover:text-gray-100 bg-gray-700 hover:bg-gray-800 border-gray-100 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300"
               aria-label="Open sidebar menu"
             >
-              <Menu className="h-5 w-5 text-gray-600" />
+              <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64">
@@ -74,23 +74,25 @@ export function TopNavbar({ isSidebarOpen, toggleSidebar }: TopNavbarProps) {
 
         {/* Desktop Toggle Button */}
         <Button
-          variant="ghost"
-          size="icon"
-          className="hidden md:flex hover:bg-gray-100 rounded-lg"
+          variant="outline"
+          size="default"
+          className="hidden md:flex text-gray-100 hover:text-gray-100 bg-gray-700 hover:bg-gray-800 border-gray-100 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 gap-2"
           onClick={toggleSidebar}
           aria-label="Toggle sidebar"
         >
+        
           {isSidebarOpen ? (
-            <RiBarChartHorizontalLine className="h-5 w-5 text-gray-600" />
+            <ChevronLeft className="h-4 w-4" />
           ) : (
-            <RiBarChartHorizontalLine className="h-5 w-5 text-gray-600" />
+            <ChevronRight className="h-4 w-4" />
           )}
+            <Menu className="h-4 w-4" />
         </Button>
       </div>
 
       {/* Middle - Search Bar - Now fully responsive */}
-      <div className="flex-1 mx-2 md:mx-4">
-        <div className="relative max-w-xl">
+      <div className="flex-1 mx-2 md:mx-4 flex items-center gap-2">
+        <div className="relative max-w-xl flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
@@ -107,8 +109,19 @@ export function TopNavbar({ isSidebarOpen, toggleSidebar }: TopNavbarProps) {
 
       {/* Right side */}
       <div className="flex items-center justify-end gap-2">
+        {/* Reload Button - Desktop */}
+        <Button
+          variant="outline"
+          size="default"
+          onClick={() => window.location.reload()}
+          className="hidden md:flex bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white hover:text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out px-6 py-2.5 mr-4"
+        >
+          <RotateCw className="h-5 w-5 mr-2 animate-spin" style={{ animationDuration: '3s' }} />
+          <span className="font-medium">Reload</span>
+        </Button>
+        
         {/* Action Buttons - Hidden on small screens */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-2">
           <Link href={`https://www.bdmbazar.com`}>
             <Button
               variant="outline"
@@ -215,7 +228,16 @@ export function TopNavbar({ isSidebarOpen, toggleSidebar }: TopNavbarProps) {
               align="end"
               className="w-64 p-2 space-y-2 rounded-lg border border-gray-200 shadow-lg"
             >
-              <div className="grid grid-cols-1 gap-1 px-2">
+              <div className="grid grid-cols-1 gap-2 px-2">
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => window.location.reload()}
+                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white hover:text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out w-full px-6 py-2.5"
+                >
+                  <RotateCw className="h-5 w-5 mr-2 animate-spin" style={{ animationDuration: '3s' }} />
+                  <span className="font-medium">Reload</span>
+                </Button>
                 <Link href={`https://www.bdmbazar.com`}>
                   <Button
                     variant="outline"
