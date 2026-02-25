@@ -28,9 +28,8 @@ import {
   Star,
   Award,
   UserPlus,
-  Folders,
 } from "lucide-react";
-import { MdPayment, MdSettings } from "react-icons/md";
+import { MdPayment } from "react-icons/md";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
