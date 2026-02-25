@@ -414,13 +414,6 @@ export function AppSidebar({
           "shrink-0"
         )}
       >
-        <Image
-          src="https://res.cloudinary.com/dk0ffggfa/image/upload/v1754662720/WhatsApp_Image_2025-08-08_at_8.06.33_PM_mqsnek.jpg"
-          alt="Logo"
-          width={30}
-          height={30}
-          className="flex-shrink-0 rounded transition-transform duration-300 hover:scale-110"
-        />
         {!isCollapsed && (
           <h1 className="text-lg font-bold text-black truncate transition-opacity duration-200">
             <Image
