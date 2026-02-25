@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 
 import {
   Search,
@@ -192,21 +193,35 @@ export default function CategoryManagement() {
             lg:grid-cols-4
           "
         >
-          {currentItems.map(({ name, icon }) => (
-            <Card
-              key={name}
-              className="w-full cursor-pointer transition-all hover:shadow-md bg-gray-100"
-            >
-              <CardContent className="flex items-center gap-3 py-4 px-3">
-                <div className="text-2xl shrink-0">
-                  <IconBase />
-                </div>
-                <span className="text-sm font-medium text-gray-700 truncate w-full">
-                  {name}
-                </span>
-              </CardContent>
-            </Card>
-          ))}
+          {currentItems.map(({ name, image, bannerImg, icon, _id }) => {
+            const imgSrc = image && image !== "uploading" ? image : bannerImg && bannerImg !== "uploading" ? bannerImg : icon?.url;
+            return (
+              <Card
+                key={_id}
+                className="w-full cursor-pointer transition-all hover:shadow-md bg-gray-100"
+              >
+                <CardContent className="flex items-center gap-3 py-4 px-3">
+                  <div className="relative w-10 h-10 shrink-0">
+                    {imgSrc && imgSrc !== "uploading" ? (
+                      <Image
+                        src={imgSrc}
+                        alt={name}
+                        fill
+                        className="object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-300 rounded flex items-center justify-center text-xs text-gray-500">
+                        N/A
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 truncate w-full">
+                    {name}
+                  </span>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Right Arrow */}

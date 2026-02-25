@@ -97,11 +97,24 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
-      if (session.user) {
+      if (session.user && token.accessToken) {
+        try {
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_BASE_API}/auth/me`,
+            {
+              headers: { Authorization: `Bearer ${token.accessToken}` },
+            }
+          );
+          if (res.ok) {
+            const json = await res.json();
+            session.user.role = json.data.role;
+            session.user.walletPoint = json.data.walletPoint;
+          }
+        } catch (error) {
+          console.error("Failed to fetch fresh user data:", error);
+        }
         session.user.id = token.id;
-        session.user.role = token.role;
         session.user.gender = token.gender;
-        session.user.walletPoint = token.walletPoint;
         session.user.accessToken = token.accessToken;
       }
       return session;
